@@ -153,6 +153,7 @@
       font-weight:700;
       color:#374151;
       margin-bottom:.5rem;
+      text-transform:uppercase; /* Mantiene todos los encabezados de campo en mayúsculas. */
     }
 
     .field{
@@ -436,53 +437,39 @@
 /* =====================================================================
    ÍNDICE RÁPIDO PARA MANTENER EL SIMULADOR
    ---------------------------------------------------------------------
-   Usa Ctrl + F y busca uno de estos títulos o nombres:
+   Usa Ctrl + F para ubicar estas secciones:
 
    A. CONFIGURACIÓN GENERAL
-      - ULTIMO_CICLO_INICIAL / CICLO_RETORNO_INICIAL / CICLO_FINAL
-      - CICLOS_OCULTOS / CICLOS_EXCLUIDOS_DEL_CONTEO_Y_PAGO
-      - APPS_SCRIPT_URL / CARRERAS
+      - ULTIMO_CICLO_INICIAL, ULTIMO_CICLO_FINAL y CICLO_RETORNO_INICIAL.
+      - CICLO_FINAL, CICLOS_OCULTOS y CICLOS_EXCLUIDOS_DEL_CONTEO_Y_PAGO.
+      - URL_BACKEND_APPS_SCRIPT y CARRERAS.
 
-   B. DISPONIBILIDAD DE TRÁMITES
-      - CONFIG_TRAMITES: activar, desactivar y fijar fechas por trámite.
-      - TRAMITES_DISPONIBLES: nombre, icono y orden de las tarjetas.
+   B. CATÁLOGO ACTUAL DE TRÁMITES
+      - CONFIG_TRAMITES: disponibilidad y fechas.
+      - TRAMITES_DISPONIBLES: las seis opciones que aparecen en pantalla.
 
-   C. INICIO Y CONTENIDO DE CADA PANTALLA
-      - db.home: pantalla de inicio, avisos y correo ssacad@ue.edu.pe.
-      - db.retorno: pantalla del simulador de Reserva/Reincorporación.
+   C. PANTALLAS Y FORMULARIOS ACTIVOS
+      - db.home: página de inicio.
+      - db.retorno: Reserva de Matrícula / Reincorporación.
+      - renderFormularioCaja(): Rezagados, Sílabos, Conducta,
+        Primera Matrícula y Constancias Académicas.
 
-   D. FINANZAS — RETIROS
-      - renderFormularioRetiro(): campos de los cuatro retiros.
-      - procesarFormularioRetiro(): validaciones y preparación de datos.
-      - Buscar dentro de la función: RETIRO DE CURSO, RETIRO DE CICLO,
-        RETIRO DEFINITIVO.
+   D. FUNCIONES COMPARTIDAS
+      - manejarCampoOtro() / inicializarCamposOtro(): opción «OTRO».
+      - recopilarDatosFormulario() y validarFormularioCaja().
+      - buildMenu(), renderContent() y abrirTramite(): navegación.
 
-   E. CAJA — CONSTANCIAS Y OTROS PAGOS
-      - renderFormularioCaja(): formulario por trámite de Caja.
-      - validarFormularioCaja(): validaciones específicas.
-      - Buscar los comentarios de cada trámite dentro de la función.
+   E. CALCULADORA DE RESERVA / REINCORPORACIÓN
+      - calcularCiclosSuspendidos(), calcularMonto(), determinarSituacion().
+      - validarFormulario(), calcularRetorno() y mostrarResultado().
 
-   F. SERVICIOS ACADÉMICOS
-      - renderFormularioGenerico(): formularios específicos de cada trámite.
-      - Dentro de switch(key), cada case tiene un encabezado identificable.
-      - validarFormularioGenerico(): reglas de validación por trámite.
+   F. ENVÍO Y ACCESO
+      - confirmarSolicitudPreparada(): registra una solicitud.
+      - solicitarCodigoAcceso() y confirmarCodigoAcceso(): acceso por correo.
+      - iniciarContadorReenvioCodigo(): espera de 2 minutos para reenviar.
 
-   G. FUNCIONES COMUNES
-      - manejarCampoOtro() / inicializarCamposOtro(): comportamiento de OTRO.
-      - recopilarDatosFormulario(): recopila campos y archivos seleccionados.
-      - buildMenu() / renderContent() / abrirTramite(): navegación.
-
-   H. CALCULADORA DE RESERVA / REINCORPORACIÓN
-      - calcularCiclosSuspendidos() / obtenerCiclosIntermedios()
-      - obtenerCiclosParaPago() / calcularMonto() / determinarSituacion()
-      - validarFormulario() / calcularRetorno() / mostrarResultado()
-
-   I. ENVÍO Y ARRANQUE
-      - enviarAlSistema(): prepara el envío al Apps Script.
-      - Últimas líneas del script: buildMenu() y renderContent("home").
-
-   NOTA: esta organización agrega comentarios y ordena la configuración.
-   No cambia deliberadamente las reglas, campos ni el diseño del simulador.
+   El catálogo y el código de formularios se mantienen alineados: los trámites
+   antiguos que ya no se muestran se han retirado de esta versión.
    ===================================================================== */
 
 /* ============================================================
@@ -661,44 +648,25 @@ const CARRERAS = [
    - mostrarSiNoDisponible: true muestra la tarjeta deshabilitada;
      false oculta el trámite del inicio y del menú lateral.
 
-   Ejemplo: aperturaCurso: { habilitado: true, fechaInicio: "2026-10-20",
-                            fechaFin: "2026-11-05", mostrarSiNoDisponible: true }
+   Ejemplo para un trámite vigente:
+   reservaReincorporacion: { habilitado: true, fechaInicio: "", fechaFin: "",
+                             mostrarSiNoDisponible: true }
    Las fechas se interpretan según la fecha local del navegador.
    ============================================================ */
 const CONFIG_TRAMITES = {
-  // ==================== CAJA ====================
+  // Opciones visibles en el simulador.
   reservaReincorporacion: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
   examenRezagados: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
   emisionSilabos: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
   constanciaConducta: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
   constanciaPrimeraMatricula: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
+  constanciasAcademicas: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
+
+  // Tipos incluidos dentro del formulario «Constancias Académicas».
   constanciaPromedio: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
   constanciaCreditos: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
   constanciaRendimientoFacultad: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
-  constanciaRendimientoPromedio: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
-  constanciasAcademicas: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
-  // ==================== FINANZAS ====================
-  retiroCurso: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
-  retiroCursoMenorCarga: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
-  retiroCiclo: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
-  retiroDefinitivo: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
-  // ==================== SERVICIOS ACADÉMICOS ====================
-  matriculaMenos12: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
-  matriculaMas24: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
-  matriculaRequisito: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
-  aperturaCurso: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
-  primeraRevisionFinal: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
-  segundaRevisionFinal: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
-  revisionPEPTA: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
-  primeraRevisionRezagado: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
-  segundaRevisionRezagado: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
-  cambioCarrera: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
-  cartaPoderExamenes: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
-  cartaPoderCarne: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
-  cartaPresentacionEmpresa: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
-  solicitudGeneral: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
-  autorizacionInfoAcademica: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true },
-  cuartaMatricula: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true }
+  constanciaRendimientoPromedio: { habilitado: true, fechaInicio: "", fechaFin: "", mostrarSiNoDisponible: true }
 };
 
 /* ------------------------------------------------------------
@@ -1117,72 +1085,7 @@ const db = {
     `
   },
 
-  retiroCurso: {
-    title: "Retiro de curso",
-    icon: "book-x",
-    menu: "Retiro de curso",
-    html: `
-      <div class="max-w-5xl mx-auto">
-        <div class="glass rounded-2xl p-7 border-l-4 border-[var(--esan-red)]">
-          <div class="flex items-start gap-4">
-            <div class="w-14 h-14 rounded-2xl bg-[var(--esan-red)] flex items-center justify-center shrink-0">
-              <i data-lucide="book-x" class="w-7 h-7 text-white"></i>
-            </div>
-            <div>
-              <span class="status-pill bg-amber-50 text-amber-700 mb-3">Simulador en preparación</span>
-              <h2 class="text-3xl font-extrabold text-gray-900">Retiro de curso</h2>
-              <p class="text-gray-600 mt-3 leading-relaxed">
-                Esta sección será configurada en el siguiente paso. Por ahora se muestran algunas condiciones
-                generales establecidas en el Reglamento de Estudios de Pregrado.
-              </p>
-            </div>
-          </div>
-        </div>
 
-        <div class="grid md:grid-cols-3 gap-5 mt-6">
-          <div class="glass rounded-2xl p-6">
-            <i data-lucide="calendar-clock" class="w-7 h-7 text-[var(--esan-red)]"></i>
-            <h3 class="font-extrabold text-gray-900 mt-4">Plazo ordinario</h3>
-            <p class="text-sm text-gray-600 mt-2 leading-relaxed">
-              El retiro puede solicitarse desde el inicio de clases y, como regla general, hasta el viernes
-              a las 12:00 del mediodía de la décima semana de actividades.
-            </p>
-          </div>
-
-          <div class="glass rounded-2xl p-6">
-            <i data-lucide="library-big" class="w-7 h-7 text-[var(--esan-red)]"></i>
-            <h3 class="font-extrabold text-gray-900 mt-4">Créditos restantes</h3>
-            <p class="text-sm text-gray-600 mt-2 leading-relaxed">
-              Luego del retiro, la carga académica restante no debe ser inferior a 12 créditos,
-              salvo las situaciones que correspondan según la normativa.
-            </p>
-          </div>
-
-          <div class="glass rounded-2xl p-6">
-            <i data-lucide="receipt-text" class="w-7 h-7 text-[var(--esan-red)]"></i>
-            <h3 class="font-extrabold text-gray-900 mt-4">Efecto económico</h3>
-            <p class="text-sm text-gray-600 mt-2 leading-relaxed">
-              El retiro ordinario tiene efectos académicos y no modifica los pagos asumidos
-              ni genera devolución de los importes cancelados.
-            </p>
-          </div>
-        </div>
-
-        <div class="mt-6 bg-white border border-gray-200 rounded-2xl p-6 flex gap-4">
-          <div class="w-11 h-11 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
-            <i data-lucide="triangle-alert" class="w-5 h-5 text-[var(--esan-red)]"></i>
-          </div>
-          <div>
-            <h3 class="font-extrabold text-gray-900">Casos especiales</h3>
-            <p class="text-sm text-gray-600 mt-2 leading-relaxed">
-              Las solicitudes sustentadas en causas graves o situaciones extraordinarias pueden estar sujetas
-              a evaluación individual. Esta sección se incorporará cuando definamos la lógica completa del simulador.
-            </p>
-          </div>
-        </div>
-      </div>
-    `
-  }
 };
 
 
@@ -1313,6 +1216,10 @@ function actualizarCorreoInstitucionalVista(){
   }
 }
 
+/*
+ * Paso 1 del acceso: valida los 8 dígitos y pide al servidor que envíe el código temporal.
+ * El contador de 2 minutos es visual; el servidor también debe aplicar el límite de reenvío.
+ */
 async function solicitarCodigoAcceso(reenviar=false){
   const input=document.getElementById("loginCodigo");
   const codigo=String(input?.value||"").trim();
@@ -1390,6 +1297,7 @@ async function solicitarCodigoAcceso(reenviar=false){
   }
 }
 
+/* Paso 2 del acceso: envía el código temporal al servidor y abre la sesión si es válido. */
 async function confirmarCodigoAcceso(){
   const codigo=codigoEstudianteActivo||String(document.getElementById("loginCodigo")?.value||"").trim();
   const otp=String(document.getElementById("codigoVerificacion")?.value||"").trim();
@@ -1425,8 +1333,7 @@ async function confirmarCodigoAcceso(){
 
 document.addEventListener("input", event => {
   const el = event.target;
-  if(!el || !el.id) return;
-  if(["apellidos", "nombres", "nombreCompleto", "apellidosGenerico", "nombresGenerico"].includes(el.id)){
+  if(el?.id === "nombreCompleto"){
     el.value = el.value.toLocaleUpperCase("es-PE");
   }
 });
@@ -1438,275 +1345,6 @@ function escaparHTML(valor){
 function opcionesCarrerasHTML(){
   return `<option value="">SELECCIONE SU CARRERA</option>${CARRERAS.map(c => `<option value="${escaparHTML(c)}">${escaparHTML(c).toLocaleUpperCase("es-PE")}</option>`).join("")}<option value="OTROS">OTROS</option>`;
 }
-
-function opcionesCiclosPosteriores(cicloBase){
-  const base = cicloToIndex(cicloBase);
-  const fin = cicloToIndex(CICLO_FINAL);
-  const salida = [];
-  for(let i=base+1;i<=fin;i++){
-    const ciclo=indexToCiclo(i);
-    if(!CICLOS_OCULTOS.includes(ciclo)) salida.push(ciclo);
-  }
-  return salida;
-}
-
-function mostrarAvisoPronabec(nombre){
-  const nombreSeguro = escaparHTML(nombre || "ESTUDIANTE").toLocaleUpperCase("es-PE");
-  return `<div class="mt-5 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm leading-relaxed text-amber-950" role="alert">
-    <div class="flex items-start gap-3"><i data-lucide="info" class="w-5 h-5 shrink-0 mt-0.5 text-amber-700"></i><div><p class="font-bold">Estimado(a) ${nombreSeguro}:</p><p class="mt-2">Su solicitud de retiro debe tramitarse directamente con la coordinadora de Beca Pronabec, a través del siguiente correo:</p><p class="mt-2 font-bold">Alida Madariaga · <a class="underline" href="mailto:amadariaga@esan.edu.pe">amadariaga@esan.edu.pe</a></p><p class="mt-2 text-xs">Por esta vía no debes continuar con el formulario de retiro.</p></div></div>
-  </div>`;
-}
-
-function activarAvisoModalidadRetiro(){
-  const modalidad=document.getElementById("modalidadIngreso");
-  const apellidos=document.getElementById("apellidos");
-  const nombres=document.getElementById("nombres");
-  const aviso=document.getElementById("avisoPronabec");
-  const boton=document.getElementById("btnEnviarRetiro");
-  if(!modalidad || !aviso) return;
-  const actualizar=()=>{
-    const pronabec=modalidad.value==="BECA PRONABEC";
-    aviso.innerHTML=pronabec ? mostrarAvisoPronabec(`${nombres?.value || ""} ${apellidos?.value || ""}`.trim()) : "";
-    aviso.classList.toggle("hidden",!pronabec);
-    if(boton){const bloqueo=pronabec || document.getElementById("rindioFinal")?.value==="SI";boton.disabled=bloqueo;boton.classList.toggle("opacity-50",bloqueo);boton.classList.toggle("cursor-not-allowed",bloqueo);}
-    actualizarIconos();
-  };
-  modalidad.addEventListener("change",actualizar);
-  [apellidos,nombres].forEach(el=>el?.addEventListener("input",()=>{if(modalidad.value==="BECA PRONABEC") actualizar();}));
-  actualizar();
-}
-
-function validarCodigoCampo(id){
-  const el=document.getElementById(id);
-  const err=document.getElementById(`err-${id}`);
-  if(!el) return true;
-  const ok=/^\d{8}$/.test(el.value.trim());
-  el.classList.toggle("field-error",!ok);
-  if(err){err.textContent=ok?"":"Ingresa exactamente 8 dígitos.";err.classList.toggle("hidden",ok);}
-  return ok;
-}
-
-function mostrarEstadoRetiro(mensaje, tipo="info", extraHTML=""){
-  const estado=document.getElementById("estadoFormularioRetiro");
-  if(!estado) return;
-  const estilos={success:"border-green-200 bg-green-50 text-green-900",warning:"border-amber-200 bg-amber-50 text-amber-900",error:"border-red-200 bg-red-50 text-red-900",info:"border-blue-200 bg-blue-50 text-blue-900"};
-  estado.className=`mt-6 rounded-xl border p-4 text-sm leading-relaxed ${estilos[tipo]||estilos.info}`;
-  estado.innerHTML=`<p>${mensaje}</p>${extraHTML}`;
-  estado.classList.remove("hidden");
-  estado.scrollIntoView({behavior:"smooth",block:"nearest"});
-  actualizarIconos();
-}
-
-/* ============================================================
-   FINANZAS — FORMULARIOS DE RETIRO
-   ------------------------------------------------------------
-   RETIRO DE CURSO y RETIRO DE CURSO CON MENOR CARGA comparten
-   estructura; RETIRO DE CICLO y RETIRO DEFINITIVO tienen bloques propios.
-   Edita aquí los campos y requisitos de esos cuatro trámites.
-   ============================================================ */
-function renderFormularioRetiro(tramite){
-  // FINANZAS — identificar cuál de los cuatro trámites se está mostrando.
-  // Para cambiar los campos compartidos de Retiro de Curso y Menor Carga, busca campoCurso.
-  // Para Retiro de Ciclo, busca campoCicloRetorno. Para Retiro Definitivo, busca docsDefinitivo.
-  const esCurso=tramite.key==="retiroCurso";
-  const esMenor=tramite.key==="retiroCursoMenorCarga";
-  const esCiclo=tramite.key==="retiroCiclo";
-  const esDefinitivo=tramite.key==="retiroDefinitivo";
-  const titulo=tramite.nombre;
-  const ciclosRetorno=opcionesCiclosPosteriores("2026-2");
-  const declaracionesCurso=[
-    "Todos los datos expresados en este documento constituyen mi consentimiento libre y voluntario.",
-    "Es mi responsabilidad la decisión de retirarme del curso antes señalado.",
-    esMenor ? "He leído, completado y adjuntado conforme el formato de retiro de curso con menor carga académica." : "He leído, completado y adjuntado conforme el formato de retiro de curso."
-  ];
-  const declaracionesCiclo=[
-    "NO HE RENDIDO EVALUACIÓN FINAL de algún curso matriculado en el presente ciclo, caso contrario no procederá mi solicitud sin lugar a reclamo.",
-    "Declaro haber sido informado(a) y acepto que, al presentar mi solicitud de retiro una vez iniciadas las clases, esta tendrá únicamente efectos académicos y deberé asumir el pago del 100% de los derechos académicos correspondientes al período, sin derecho a devolución ni exoneración.",
-    "Declaro que no presento adeudos de libros o material académico en la oficina CENDOC, caso contrario no procederá mi solicitud sin lugar a reclamo.",
-    "Todos los datos expresados en este documento constituyen mi consentimiento libre y voluntario."
-  ];
-  const declaracionesDefinitivo=[
-    "He leído y acepto que, si mi solicitud de retiro se formaliza una vez iniciadas las clases, asumiré el pago del 100% de los derechos académicos correspondientes al período.",
-    "No presento adeudos de libros o material académico en la oficina CENDOC.",
-    "Todos los datos expresados en este documento constituyen mi consentimiento libre y voluntario.",
-    "Es mi responsabilidad la decisión de retirarme definitivamente de la Universidad ESAN.",
-    "He leído, completado y adjuntado conforme el formato de retiro definitivo y ficha de atención."
-  ];
-  const declaraciones=esCurso||esMenor?declaracionesCurso:esCiclo?declaracionesCiclo:declaracionesDefinitivo;
-  const campoCiclo=(!esDefinitivo)?`<div><label class="field-label" for="cicloRetiro">Ciclo</label><select id="cicloRetiro" class="field" required><option value="2026-2" selected>2026-2</option></select></div>`:"";
-  const campoCurso=(esCurso||esMenor)?`
-    <div class="sm:col-span-2"><label class="field-label" for="cursoRetirar">Curso(s) a retirar</label><select id="cursoRetirar" class="field cursoRetirarSelect" required disabled onchange="toggleOtroCurso()"><option value="">Seleccione primero la carrera</option></select><p class="helper">Se permitirá incluir varios cursos en una misma solicitud. La lista oficial de cursos por carrera está pendiente de incorporar; por ahora, selecciona OTRO y escribe el nombre.</p><div id="otroCursoWrap" class="hidden mt-3"><label class="field-label" for="otroCurso">Especifica el curso</label><input id="otroCurso" class="field" type="text" placeholder="Nombre del curso"></div><div id="cursosAdicionalesRetiro" class="space-y-4 mt-4"></div><button type="button" onclick="agregarCursoRetiro()" class="mt-4 rounded-xl border border-[var(--esan-red)] px-4 py-2 text-sm font-bold text-[var(--esan-red)]">+ Agregar otro curso</button></div>
-    <div><label class="field-label" for="motivoRetiro">Motivo del retiro</label><select id="motivoRetiro" class="field" required><option value="">Seleccione un motivo</option>${["ACADÉMICO","ECONÓMICO","FALTA DE TIEMPO","MOTIVOS PERSONALES","SALUD","VOCACIONAL","OTRO"].map(x=>`<option>${x}</option>`).join("")}</select></div>
-    <div><label class="field-label" for="creditosRestantes">Total de créditos en los que quedará matriculado(a)</label><select id="creditosRestantes" class="field" required onchange="toggleOtroCredito()"><option value="">Seleccione una cantidad</option>${Array.from({length:27},(_,i)=>`<option value="${i}">${i}</option>`).join("")}<option value="OTRO">OTRO</option></select><div id="otroCreditoWrap" class="hidden mt-3"><label class="field-label" for="otroCredito">Especifica la cantidad de créditos</label><input id="otroCredito" class="field" type="number" min="0" max="100" placeholder="Cantidad de créditos"></div></div>
-    <div class="format-upload-card rounded-xl border border-gray-200 p-4"><label class="field-label" for="formatoRetiro">Adjuntar formato de ${esMenor?"Retiro de Curso con Menor Carga Académica":"Retiro de Curso"}</label><input id="formatoRetiro" class="field" type="file" accept=".pdf" required><p class="helper mt-2">FORMATO PERMITIDO: PDF.</p></div>`:"";
-  const campoCicloRetorno=esCiclo?`<div><label class="field-label" for="motivoRetiro">Motivo del retiro de ciclo</label><select id="motivoRetiro" class="field" required><option value="">Seleccione un motivo</option>${["ACADÉMICO","ECONÓMICO","FALTA DE TIEMPO","MOTIVOS PERSONALES","SALUD","VOCACIONAL","OTRO"].map(x=>`<option value="${x}">${x}</option>`).join("")}</select></div><div><label class="field-label" for="cicloRetornoRetiro">Ciclo a retornar</label><select id="cicloRetornoRetiro" class="field" required><option value="">Seleccione un ciclo de retorno</option>${ciclosRetorno.map(c=>`<option value="${c}">${c}</option>`).join("")}</select><p class="helper">Se muestran ciclos posteriores al ciclo de retiro 2026-2.</p></div><div><label class="field-label" for="rindioFinal">¿Rindió examen final de algún curso matriculado en el presente ciclo?</label><select id="rindioFinal" class="field" required onchange="actualizarValidacionExamenFinal()"><option value="">Seleccione una opción</option><option value="NO">NO</option><option value="SI">SÍ</option></select><div id="avisoExamenFinal" class="hidden mt-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900" role="alert">Según la declaración del trámite, si rindió evaluación final de algún curso matriculado en el presente ciclo, la solicitud no procederá.</div></div>`:"";
-  const docsDefinitivo=esDefinitivo?`<div id="segundaEtapaDefinitivo" class="hidden mt-8 border-t border-gray-200 pt-6"><div class="mb-5"><p class="text-xs uppercase tracking-[.2em] text-[var(--esan-red)] font-bold">Segunda etapa</p><h3 class="text-xl font-extrabold text-gray-900 mt-1">Presentación de documentos</h3><p class="text-sm text-gray-500 mt-2">Después de la entrevista con Permanencia Estudiantil, adjunta la ficha de atención y el formato completado.</p></div><div class="space-y-5"><div class="format-upload-card rounded-xl border border-gray-200 p-4"><label class="field-label" for="fichaAtencion">FICHA DE ATENCIÓN DE PERMANENCIA ESTUDIANTIL *</label><input id="fichaAtencion" class="field" type="file" accept=".pdf" required><p class="helper mt-2">FORMATO PERMITIDO: PDF.</p></div><div class="format-upload-card rounded-xl border border-gray-200 p-4"><p class="font-bold text-gray-900 mb-3">DEBERÁ DESCARGAR Y ADJUNTAR EL SIGUIENTE DOCUMENTO:</p><p class="mb-4"><a class="inline-flex items-center gap-2 rounded-xl bg-[var(--esan-red)] hover:bg-[var(--esan-red-dark)] px-4 py-3 text-white font-bold" href="https://uevirtual.ue.edu.pe/intranet/images/01-ServAcademico/Tramites-Academicos/SOLICITUD_DE_RETIRO_DEFINITIVO.docx" target="_blank" rel="noopener"><i data-lucide="download" class="w-4 h-4"></i>DESCARGAR FORMATO DE SOLICITUD</a></p><label class="field-label" for="formatoDefinitivo">ADJUNTAR FORMATO DE RETIRO DEFINITIVO *</label><input id="formatoDefinitivo" class="field" type="file" accept=".pdf" required><p class="helper mt-2">FORMATO PERMITIDO: PDF.</p></div><div class="space-y-4"><p class="font-extrabold text-gray-900">Declaro que:</p>${declaracionesDefinitivo.map((d,i)=>`<label class="flex items-start gap-3 rounded-xl border border-gray-200 p-4 cursor-pointer"><input type="checkbox" class="declaracionRetiro mt-1 accent-red-600" data-declaracion="${i}"><span class="text-sm leading-relaxed text-gray-700">${d}</span></label>`).join("")}</div><button type="button" id="btnEnviarDocumentosDefinitivo" class="w-full sm:w-auto rounded-xl bg-[var(--esan-red)] px-7 py-3.5 text-white font-bold hover:bg-[var(--esan-red-dark)]" onclick="validarDocumentosRetiroDefinitivo()">Validar documentos</button></div></div>`:"";
-  const seccionDeclaraciones=(esCurso||esMenor||esCiclo)?`<div class="border-t border-gray-200 pt-6 mt-7"><h3 class="text-lg font-extrabold text-gray-900 mb-4">Declaro que:</h3><div class="space-y-4">${declaraciones.map((d,i)=>`<label class="flex items-start gap-3 rounded-xl border border-gray-200 p-4 cursor-pointer"><input type="checkbox" class="declaracionRetiro mt-1 accent-red-600" data-declaracion="${i}" required><span class="text-sm leading-relaxed text-gray-700">${d}</span></label>`).join("")}</div></div>`:"";
-  const botonTexto=esDefinitivo?"Solicitar información sobre el Retiro Definitivo":"Enviar solicitud";
-  const explicacion=esDefinitivo?"Primero recibirás las instrucciones para la entrevista y los documentos. Después podrás completar la segunda etapa.":"Completa los campos obligatorios y adjunta los documentos solicitados.";
-
-  document.getElementById("viewer").innerHTML=`
-    <div class="max-w-4xl mx-auto animate-[fadeIn_0.3s]">
-      <button type="button" onclick="renderContent('home')" class="inline-flex items-center gap-2 text-sm font-bold text-[var(--esan-red)] hover:underline mb-5"><i data-lucide="arrow-left" class="w-4 h-4"></i>Volver a todos los trámites</button>
-      <section class="glass rounded-2xl p-6 sm:p-8 border-l-4 border-[var(--esan-red)] mb-6"><div class="flex items-start gap-4"><div class="w-14 h-14 rounded-2xl bg-red-50 text-[var(--esan-red)] flex items-center justify-center shrink-0"><i data-lucide="${tramite.icono}" class="w-7 h-7"></i></div><div><p class="text-xs uppercase tracking-[.2em] text-[var(--esan-red)] font-bold">Formulario de retiro</p><h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1">${titulo}</h2><p class="text-sm text-gray-500 mt-2">${explicacion}</p></div></div></section>
-      <form id="formularioRetiro" class="glass rounded-2xl p-6 sm:p-8 space-y-7" novalidate onsubmit="event.preventDefault(); procesarFormularioRetiro('${tramite.key}');">
-        <section><h3 class="text-lg font-extrabold text-gray-900 mb-5">Datos del estudiante</h3><div class="grid sm:grid-cols-2 gap-5">
-          <div><label class="field-label" for="codigo">Código de alumno</label><!-- Se completa desde el acceso; readonly evita cambios en la interfaz. --><input id="codigo" class="field bg-gray-100 cursor-not-allowed" type="text" inputmode="numeric" maxlength="8" required value="${atributoCodigoSesion()}" readonly aria-readonly="true"><p id="err-codigo" class="error-text hidden"></p></div>
-          <div><label class="field-label" for="apellidos">Apellidos</label><input id="apellidos" class="field uppercase" type="text" required placeholder="APELLIDOS" autocomplete="family-name"></div>
-          <div><label class="field-label" for="nombres">Nombres</label><input id="nombres" class="field uppercase" type="text" required placeholder="NOMBRES" autocomplete="given-name"></div>
-          <div><label class="field-label" for="modalidadIngreso">Modalidad de ingreso</label><select id="modalidadIngreso" class="field" required><option value="">Seleccione su modalidad</option>${["ADMISIÓN","BECA PRONABEC","INTERCAMBIO","TRASLADO","OTRO"].map(x=>`<option value="${x}">${x}</option>`).join("")}</select></div>
-          <div class="sm:col-span-2"><label class="field-label" for="carrera">Carrera</label><select id="carrera" class="field" required>${opcionesCarrerasHTML()}</select></div>
-          ${campoCiclo}
-        </div><div id="avisoPronabec" class="hidden"></div></section>
-        ${esCurso||esMenor?`<section class="border-t border-gray-200 pt-6"><h3 class="text-lg font-extrabold text-gray-900 mb-5">Información del curso a retirar</h3><div class="grid sm:grid-cols-2 gap-5">${campoCurso}</div><div class="mt-6 space-y-4">${seccionDeclaraciones}</div></section>`:""}
-        ${esCiclo?`<section class="border-t border-gray-200 pt-6"><h3 class="text-lg font-extrabold text-gray-900 mb-5">Información del retiro</h3><div class="grid sm:grid-cols-2 gap-5">${campoCicloRetorno}<div class="format-upload-card rounded-xl border border-gray-200 p-4"><label class="field-label" for="formatoRetiro">FORMATO DE RETIRO DE CICLO *</label><input id="formatoRetiro" class="field" type="file" accept=".pdf" required><p class="helper mt-2">FORMATO PERMITIDO: PDF.</p></div></div><div class="mt-6">${seccionDeclaraciones}</div></section>`:""}
-        ${esDefinitivo?`<section class="border-t border-gray-200 pt-6"><div class="rounded-xl bg-gray-50 border border-gray-200 p-4 text-sm text-gray-700 leading-relaxed"><p class="font-bold">Antes de iniciar</p><ul class="list-disc pl-5 mt-2 space-y-1"><li>Si el retiro se formaliza una vez iniciadas las clases, se asume el 100% de los derechos académicos del período.</li><li>No debe presentar adeudos de libros o material académico en CENDOC.</li><li>No debe encontrarse de baja académica.</li><li>Los estudiantes con Beca Pronabec deben gestionar el retiro con la coordinadora del programa.</li></ul></div></section>`:""}
-        <button id="btnEnviarRetiro" type="submit" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--esan-red)] hover:bg-[var(--esan-red-dark)] px-7 py-3.5 text-white font-bold shadow-lg"><i data-lucide="${esDefinitivo?"mail":"send"}" class="w-5 h-5"></i>${botonTexto}</button>
-        <div id="estadoFormularioRetiro" class="hidden" aria-live="polite"></div>
-        ${docsDefinitivo}
-      </form>
-    </div>`;
-  document.getElementById("topTitle").textContent=titulo;
-  actualizarMenuActivo(tramite.key); toggleMenu(false);
-  // El código viene del acceso; solo se valida su formato, no se permite editarlo aquí.
-  const codigo=document.getElementById("codigo");
-  if(codigo) codigo.value = obtenerCodigoSesion();
-  activarAvisoModalidadRetiro();
-  const carreraSelect=document.getElementById("carrera");
-  carreraSelect?.addEventListener("change",actualizarCursosPorCarrera);
-  if(esCiclo){document.getElementById("rindioFinal").addEventListener("change",actualizarValidacionExamenFinal);}
-  inicializarCamposOtro(document.getElementById("formularioRetiro"));
-  actualizarIconos();document.getElementById("viewer").scrollTop=0;
-}
-
-function actualizarCursosPorCarrera(){
-  const carrera=document.getElementById("carrera");
-  if(!carrera)return;
-  document.querySelectorAll(".cursoRetirarSelect").forEach(select=>{
-    const previo=select.value;
-    select.innerHTML = carrera.value
-      ? `<option value="">Lista de cursos pendiente de incorporar</option><option value="OTRO">OTRO</option>`
-      : `<option value="">Seleccione primero la carrera</option>`;
-    select.disabled = !carrera.value;
-    if(previo==="OTRO")select.value="OTRO";
-  });
-  toggleOtroCurso();
-}
-function toggleOtroCurso(){
-  const select=document.getElementById("cursoRetirar"), wrap=document.getElementById("otroCursoWrap"), input=document.getElementById("otroCurso");
-  if(select&&wrap){wrap.classList.toggle("hidden",select.value!=="OTRO");if(input)input.required=select.value==="OTRO";}
-  document.querySelectorAll(".cursoRetiroAdicional").forEach(row=>{
-    const sel=row.querySelector("select"), w=row.querySelector(".otroCursoAdicionalWrap"), inp=row.querySelector(".otroCursoAdicional");
-    if(sel&&w){w.classList.toggle("hidden",sel.value!=="OTRO");if(inp)inp.required=sel.value==="OTRO";}
-  });
-}
-function agregarCursoRetiro(){
-  const container=document.getElementById("cursosAdicionalesRetiro");if(!container)return;
-  const n=container.querySelectorAll(".cursoRetiroAdicional").length+2;
-  container.insertAdjacentHTML("beforeend",`<div class="cursoRetiroAdicional rounded-xl border border-gray-200 p-4"><div class="flex items-center justify-between gap-3 mb-3"><p class="font-bold text-gray-800">Curso ${n}</p><button type="button" class="text-sm font-bold text-red-600" onclick="this.closest('.cursoRetiroAdicional').remove();renumerarCursosRetiro();">Eliminar</button></div><select class="field cursoRetirarSelect" required ${!document.getElementById("carrera")?.value?"disabled":""} onchange="toggleOtroCurso()"><option value="">${document.getElementById("carrera")?.value?"Lista de cursos pendiente de incorporar":"Seleccione primero la carrera"}</option>${document.getElementById("carrera")?.value?'<option value="OTRO">OTRO</option>':''}</select><div class="otroCursoAdicionalWrap hidden mt-3"><label class="field-label">Especifica el curso</label><input class="field otroCursoAdicional" type="text" placeholder="Nombre del curso"></div></div>`);
-  renumerarCursosRetiro();
-}
-function renumerarCursosRetiro(){document.querySelectorAll("#cursosAdicionalesRetiro .cursoRetiroAdicional").forEach((row,i)=>{const label=row.querySelector("p");if(label)label.textContent=`Curso ${i+2}`;});}
-function toggleOtroCredito(){
-  const select=document.getElementById("creditosRestantes"),wrap=document.getElementById("otroCreditoWrap");
-  if(select&&wrap){wrap.classList.toggle("hidden",select.value!=="OTRO");const input=document.getElementById("otroCredito");if(input)input.required=select.value==="OTRO";}
-}
-function actualizarValidacionExamenFinal(){
-  const select=document.getElementById("rindioFinal"),aviso=document.getElementById("avisoExamenFinal"),boton=document.getElementById("btnEnviarRetiro");
-  if(!select)return;
-  const rindio=select.value==="SI";
-  if(aviso)aviso.classList.toggle("hidden",!rindio);
-  if(boton){const pronabec=document.getElementById("modalidadIngreso")?.value==="BECA PRONABEC";const bloqueo=rindio||pronabec;boton.disabled=bloqueo;boton.classList.toggle("opacity-50",bloqueo);boton.classList.toggle("cursor-not-allowed",bloqueo);}
-}
-
-/* FINANZAS — validación y preparación de los datos de los retiros. */
-function procesarFormularioRetiro(key){
-  const modalidad=document.getElementById("modalidadIngreso");
-  if(modalidad?.value==="BECA PRONABEC"){
-    activarAvisoModalidadRetiro();return;
-  }
-  const codigo=document.getElementById("codigo");
-  if(!validarCodigoCampo("codigo"))return;
-  const requiredIds=["apellidos","nombres","modalidadIngreso","carrera"];
-  if(key!=="retiroDefinitivo")requiredIds.push("cicloRetiro");
-  if(key==="retiroCurso"||key==="retiroCursoMenorCarga")requiredIds.push("cursoRetirar","motivoRetiro","creditosRestantes","formatoRetiro");
-  if(key==="retiroCiclo")requiredIds.push("motivoRetiro","cicloRetornoRetiro","rindioFinal","formatoRetiro");
-  let faltan=[];
-  requiredIds.forEach(id=>{const el=document.getElementById(id);if(el && !String(el.value||"").trim())faltan.push(id);});
-  if(key==="retiroCurso"||key==="retiroCursoMenorCarga"){
-    if(document.getElementById("cursoRetirar")?.value==="OTRO"&&!document.getElementById("otroCurso")?.value.trim())faltan.push("otroCurso");
-    if(document.getElementById("creditosRestantes")?.value==="OTRO"&&!document.getElementById("otroCredito")?.value.trim())faltan.push("otroCredito");
-    document.querySelectorAll("#cursosAdicionalesRetiro .cursoRetiroAdicional").forEach((row,i)=>{
-      const select=row.querySelector("select"), otro=row.querySelector(".otroCursoAdicional");
-      if(!select?.value)faltan.push(`cursoAdicional${i+1}`);
-      if(select?.value==="OTRO"&&!otro?.value.trim())faltan.push(`otroCursoAdicional${i+1}`);
-    });
-  }
-  document.querySelectorAll("#formularioRetiro [data-otro-campo][required]").forEach(input=>{
-    if(!String(input.value||"").trim()) faltan.push(input.id);
-  });
-  if(key==="retiroCiclo"&&document.getElementById("rindioFinal")?.value==="SI"){
-    mostrarEstadoRetiro("Según las condiciones declaradas, la solicitud no procede si rindió evaluación final de algún curso matriculado en el presente ciclo.","error");return;
-  }
-  const checkboxes=[...document.querySelectorAll("#formularioRetiro .declaracionRetiro")];
-  if(key!=="retiroDefinitivo" && checkboxes.some(c=>!c.checked)){
-    mostrarEstadoRetiro("Debes marcar todas las declaraciones obligatorias antes de enviar el formulario.","error");return;
-  }
-  const formularioRetiro = document.getElementById("formularioRetiro");
-  const archivosRetiro=[...document.querySelectorAll("#formularioRetiro input[type=\"file\"]:required")];
-  archivosRetiro.forEach(el=>{if(el.files?.length&&!/\.pdf$/i.test(el.files[0].name))faltan.push(`${el.id} (SOLO PDF)`);});
-  obtenerErroresCamposObligatorios(formularioRetiro).forEach(error=>faltan.push(error.element.id || error.mensaje));
-  if(faltan.length){
-    mostrarEstadoRetiro("Completa todos los campos obligatorios y adjunta los documentos solicitados en PDF.","error");
-    const first=document.getElementById(faltan[0]);first?.focus();return;
-  }
-  const datosRetiro = recopilarDatosFormulario(formularioRetiro);
-  const detallesOtroRetiro = {};
-  formularioRetiro?.querySelectorAll("[data-otro-campo]").forEach(input=>{
-    if(String(input.value||"").trim()) detallesOtroRetiro[input.name || input.dataset.otroCampo] = String(input.value).trim();
-  });
-  ["otroCurso","otroCredito"].forEach(id=>{
-    const input=document.getElementById(id);
-    if(input && String(input.value||"").trim()) detallesOtroRetiro[id]=String(input.value).trim();
-  });
-  formularioRetiro?.querySelectorAll(".otroCursoAdicional").forEach((input,i)=>{
-    if(String(input.value||"").trim()) detallesOtroRetiro[`otroCursoAdicional${i+1}`]=String(input.value).trim();
-  });
-  ultimaSolicitudFormularioPreparada = { accion:"registrarSolicitud", tramite:key, fechaRegistro:new Date().toISOString(), datos:datosRetiro, detallesOtro:detallesOtroRetiro };
-  if(key==="retiroDefinitivo"){
-    const nombre=`${document.getElementById("nombres").value.trim()} ${document.getElementById("apellidos").value.trim()}`.toLocaleUpperCase("es-PE");
-    const emailPreview=`<div class="mt-4 rounded-lg border border-gray-200 bg-white p-4 text-gray-700"><p><strong>Para:</strong> correo institucional del estudiante</p><p class="mt-3"><strong>Asunto:</strong> Indicaciones para iniciar el trámite de Retiro Definitivo</p><p class="mt-3">Estimado(a) estudiante, ${escaparHTML(nombre)}:</p><p class="mt-2">Reciba un cordial saludo. Hemos recibido su consulta sobre el trámite de Retiro Definitivo de la Universidad ESAN.</p><ul class="list-disc pl-5 mt-2 space-y-1"><li>Si el retiro se formaliza una vez iniciadas las clases, deberá asumir el 100% de los derechos académicos del período.</li><li>No deberá presentar adeudos de libros o material académico en CENDOC.</li><li>No deberá encontrarse de baja académica.</li><li>Si cuenta con Beca Pronabec, deberá gestionarlo directamente con Alida Madariaga: <a class="underline" href="mailto:amadariaga@esan.edu.pe">amadariaga@esan.edu.pe</a>.</li></ul><p class="mt-3"><strong>Paso 1:</strong> coordinar una entrevista con Permanencia Estudiantil, que emitirá la ficha de atención.</p><p class="mt-2"><strong>Paso 2:</strong> descargar y completar el <a class="underline text-[var(--esan-red)]" href="https://uevirtual.ue.edu.pe/intranet/images/01-ServAcademico/Tramites-Academicos/SOLICITUD_DE_RETIRO_DEFINITIVO.docx" target="_blank" rel="noopener">formato de Retiro Definitivo</a>.</p><p class="mt-2"><strong>Paso 3:</strong> cuando tenga ambos documentos, deberá presentarlos mediante la sección de presentación de documentos del simulador (en desarrollo).</p><p class="mt-2">Si presenta boletas vencidas pendientes de pago, no procederá el registro hasta regularizar su situación con <a class="underline" href="mailto:cobranzaspregrado@ue.edu.pe">cobranzaspregrado@ue.edu.pe</a>, con copia a finanzaspregrado@ue.edu.pe, echavez@esan.edu.pe y bbarzola@esan.edu.pe.</p></div><button type="button" onclick="mostrarSegundaEtapaDefinitivo()" class="mt-4 inline-flex items-center gap-2 rounded-xl bg-[var(--esan-red)] px-5 py-3 font-bold text-white"><i data-lucide="file-up" class="w-4 h-4"></i>Ya tengo los documentos</button>`;
-    mostrarEstadoRetiro("Se validó la información ingresada. Revisa las indicaciones para continuar con el trámite.","info",emailPreview);
-    return;
-  }
-  let extra="";
-  if(key==="retiroCiclo"){
-    const cicloRetorno=document.getElementById("cicloRetornoRetiro").value;
-    const suspendidos=calcularCiclosSuspendidos("2026-2",cicloRetorno);
-    if(suspendidos>=1&&suspendidos<=2){
-      extra=`<div class="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-4"><p class="font-bold">Recuerda realizar tu Reserva de Matrícula</p><p class="mt-1">Según el ciclo de retorno seleccionado, también debes realizar el trámite de Reserva de Matrícula.</p><button type="button" onclick="abrirTramiteEspecial('reserva')" class="mt-3 rounded-xl bg-[var(--esan-red)] px-5 py-3 font-bold text-white">Ir a Reserva de Matrícula</button></div>`;
-    }
-  }
-  mostrarEstadoRetiro("Los campos obligatorios se validaron correctamente. Revisa la información ingresada.","success",extra);
-  agregarBotonConfirmarSolicitud(document.getElementById("estadoFormularioRetiro"));
-}
-
-function mostrarSegundaEtapaDefinitivo(){
-  const etapa=document.getElementById("segundaEtapaDefinitivo");
-  if(etapa){etapa.classList.remove("hidden");etapa.scrollIntoView({behavior:"smooth",block:"start"});}
-  actualizarIconos();
-}
-function validarDocumentosRetiroDefinitivo(){
-  const ficha=document.getElementById("fichaAtencion"),formato=document.getElementById("formatoDefinitivo");
-  const checks=[...document.querySelectorAll("#segundaEtapaDefinitivo .declaracionRetiro")];
-  if(!ficha?.files?.length||!formato?.files?.length||checks.some(c=>!c.checked)){
-    mostrarEstadoRetiro("Para continuar, adjunta la ficha de atención, el formato de Retiro Definitivo y marca las cinco declaraciones obligatorias.","error");return;
-  }
-  if(!/\.pdf$/i.test(ficha.files[0].name)||!/\.pdf$/i.test(formato.files[0].name)){mostrarEstadoRetiro("Los documentos adjuntos deben estar en formato PDF.","error");return;}
-  mostrarEstadoRetiro("Los documentos y las declaraciones se validaron correctamente.","success");
-  agregarBotonConfirmarSolicitud(document.getElementById("estadoFormularioRetiro"));
-}
-
 
 /* ============================================================
    MENÚ Y NAVEGACIÓN
@@ -1756,7 +1394,6 @@ db.soporte = {
     </div>
   `
 };
-  let listaTramitesSidebarAbierta = false;
 
 /* ============================================================
    NAVEGACIÓN — menú lateral, pestañas y apertura de pantallas
@@ -1811,18 +1448,6 @@ function buildMenu(){
   `;
 
   actualizarIconos();
-}
-
-function toggleListaTramitesSidebar(){
-  const lista = document.getElementById("sidebar-lista-tramites");
-  const boton = document.getElementById("menu-toggle-tramites");
-  const icono = document.getElementById("icono-toggle-tramites");
-  if(!lista || !boton) return;
-
-  listaTramitesSidebarAbierta = !listaTramitesSidebarAbierta;
-  lista.classList.toggle("hidden", !listaTramitesSidebarAbierta);
-  boton.setAttribute("aria-expanded", String(listaTramitesSidebarAbierta));
-  if(icono) icono.classList.toggle("rotate-180", listaTramitesSidebarAbierta);
 }
 
 function actualizarMenuActivo(key){
@@ -1903,17 +1528,16 @@ function abrirTramite(key){
     return;
   }
 
-  if(tramite.especial === "automatico" || tramite.especial === "reserva" || tramite.especial === "reincorporacion"){
-    abrirTramiteEspecial("automatico");
+  if(tramite.especial === "automatico"){
+    abrirTramiteEspecial();
     return;
   }
 
-  renderFormularioGenerico(tramite);
+  renderFormularioCaja(tramite);
 }
 
-function abrirTramiteEspecial(modo){
-  // El trámite se determina automáticamente a partir de los ciclos ingresados.
-  modoTramiteRetorno = "automatico";
+function abrirTramiteEspecial(){
+  // Reserva o reincorporación se determina automáticamente a partir de los ciclos ingresados.
   renderContent("retorno");
 }
 
@@ -1923,7 +1547,7 @@ function abrirTramiteEspecial(modo){
    Para cualquier desplegable que tenga una opción OTRO/OTRA/OTROS/OTRAS,
    muestra un campo de texto y lo incorpora a los datos preparados para
    el backend con un nombre terminado en _Otro.
-   Los campos de curso y créditos del retiro conservan sus controles propios.
+   Excepción: motivoConstanciaCaja tiene un campo propio y no debe duplicarse.
    ============================================================ */
 /* ============================================================
    FUNCIONES COMUNES — OPCIÓN «OTRO» Y RECOPILACIÓN DE CAMPOS
@@ -1945,7 +1569,8 @@ function llaveCampoOtro(select){
 
 function asegurarCampoOtro(select){
   if(!select || select.tagName !== "SELECT") return null;
-  if(select.id === "cursoRetirar" || select.id === "creditosRestantes" || select.classList.contains("cursoRetirarSelect")) return null;
+  // Constancias Académicas administra su campo OTRO manualmente; evita crear una segunda casilla.
+  if(select.id === "motivoConstanciaCaja") return null;
   if(![...select.options].some(esOpcionOtro)) return null;
   let wrap = select.parentElement?.querySelector(`:scope > .campoOtroWrap[data-otro-para="${CSS.escape(llaveCampoOtro(select))}"]`);
   if(!wrap){
@@ -1977,7 +1602,7 @@ function manejarCampoOtro(select){
 
 function inicializarCamposOtro(root=document){
   root.querySelectorAll("select").forEach(select => {
-    if([...select.options].some(esOpcionOtro) && select.id !== "cursoRetirar" && select.id !== "creditosRestantes" && select.id !== "motivoConstanciaCaja" && !select.classList.contains("cursoRetirarSelect")){
+    if([...select.options].some(esOpcionOtro) && select.id !== "motivoConstanciaCaja"){
       asegurarCampoOtro(select);
       manejarCampoOtro(select);
     }
@@ -1990,9 +1615,7 @@ function recopilarDatosFormulario(form){
   form.querySelectorAll("input:not([type=file]), select, textarea").forEach((el, index) => {
     const key = el.name || el.id || `campo_${index+1}`;
     if(el.type === "checkbox"){
-      if(el.classList.contains("declaracionRetiro") || el.classList.contains("declaracionCaja") || el.type === "checkbox"){
-        datos[key] = !!el.checked;
-      }
+      datos[key] = !!el.checked;
     } else if(el.tagName === "SELECT" && el.multiple){
       datos[key] = [...el.selectedOptions].map(op => op.value);
     } else {
@@ -2044,12 +1667,18 @@ function alternarOtroMotivoConstanciaAcademica(){
   const mostrar=document.getElementById("motivoConstanciaCaja")?.value==="Otro",wrap=document.getElementById("otroMotivoConstanciaWrap"),input=document.getElementById("otroMotivoConstanciaCaja");
   wrap?.classList.toggle("hidden",!mostrar);if(input){input.required=mostrar;if(!mostrar)input.value="";}
 }
+/*
+ * Construye los campos que cambian según el tipo de constancia elegido.
+ * El motivo «Otro» se controla con alternarOtroMotivoConstanciaAcademica()
+ * para que siempre exista una sola casilla de detalle.
+ */
 function actualizarCamposConstanciaAcademica(){
   const tipo=document.getElementById("tipoConstanciaCaja")?.value||"",fields=document.getElementById("camposEspecificosConstanciaAcademica");
   if(!fields)return;
   if(!tipo){fields.innerHTML="";return;}
   const tarifa=tipo==="constanciaRendimientoPromedio"?20:10;
-  const campoMotivo=`<div><label class="field-label" for="motivoConstanciaCaja">Motivo de la solicitud *</label><select id="motivoConstanciaCaja" name="motivoConstanciaCaja" class="field" required onchange="alternarOtroMotivoConstanciaAcademica()"><option value="">Seleccione un motivo</option><option value="Estudios">Estudios</option><option value="Laborales">Laborales</option><option value="Otro">Otro</option></select><div id="otroMotivoConstanciaWrap" class="hidden mt-3"><label class="field-label" for="otroMotivoConstanciaCaja">Especifique el motivo *</label><input id="otroMotivoConstanciaCaja" name="otroMotivoConstanciaCaja" class="field" type="text" maxlength="500" placeholder="Indique el motivo de su solicitud"></div></div>`;
+  // Este select tiene una sola casilla «Otro», definida justo debajo; no usar el generador común.
+  const campoMotivo=`<div><label class="field-label" for="motivoConstanciaCaja">MOTIVO DE LA SOLICITUD *</label><select id="motivoConstanciaCaja" name="motivoConstanciaCaja" class="field" required onchange="alternarOtroMotivoConstanciaAcademica()"><option value="">Seleccione un motivo</option><option value="Estudios">Estudios</option><option value="Laborales">Laborales</option><option value="Otro">Otro</option></select><div id="otroMotivoConstanciaWrap" class="hidden mt-3"><label class="field-label" for="otroMotivoConstanciaCaja">ESPECIFIQUE EL MOTIVO *</label><input id="otroMotivoConstanciaCaja" name="otroMotivoConstanciaCaja" class="field" type="text" maxlength="500" placeholder="INDIQUE EL MOTIVO DE SU SOLICITUD"></div></div>`;
   if(tipo==="constanciaPromedio"||tipo==="constanciaCreditos"){
     fields.innerHTML=`<section class="border-t border-gray-200 pt-6 space-y-5">${campoMotivo}<div class="rounded-xl bg-gray-50 border border-gray-200 p-4 flex items-center justify-between"><span class="font-bold text-gray-700">Costo de la constancia</span><strong class="text-xl text-[var(--esan-red)]">S/ 10.00</strong></div></section>`;
   }else{
@@ -2060,7 +1689,7 @@ function actualizarCamposConstanciaAcademica(){
 function renderFormularioConstanciasAcademicas(tramite){
   const carreraOptions=opcionesCarrerasHTML();
   const header=`<div class="max-w-4xl mx-auto animate-[fadeIn_0.3s]"><button type="button" onclick="renderContent('home')" class="inline-flex items-center gap-2 text-sm font-bold text-[var(--esan-red)] hover:underline mb-5"><i data-lucide="arrow-left" class="w-4 h-4"></i>Volver a todos los trámites</button><section class="glass rounded-2xl p-6 sm:p-8 border-l-4 border-[var(--esan-red)] mb-6"><div class="flex items-start gap-4"><div class="w-14 h-14 rounded-2xl bg-red-50 text-[var(--esan-red)] flex items-center justify-center shrink-0"><i data-lucide="${tramite.icono}" class="w-7 h-7"></i></div><div><p class="text-xs uppercase tracking-[.2em] text-[var(--esan-red)] font-bold">Formulario de solicitud</p><h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1">${tramite.nombre}</h2></div></div></section><div class="rounded-xl border border-blue-200 bg-blue-50 p-4 sm:p-5 text-sm text-blue-950 mb-6 space-y-3"><p>Estimado(a) estudiante:</p><p>Para solicitar la constancia de rendimiento académico, complete los datos solicitados en este formulario. Una vez enviada su solicitud, recibirá un ticket en su correo institucional para continuar con el proceso.</p><p class="font-bold">Importante</p><ul class="list-disc pl-5 space-y-1"><li>La constancia solo detallará la información de un ciclo, si requiere de otros ciclos adicionales se emitirá una constancia por cada ciclo solicitado. Considerar que el costo es por cada constancia emitida.</li><li>El plazo máximo para la emisión es de 7 días hábiles, contados a partir del envío del comprobante de pago.</li></ul><p class="font-bold">Antes de solicitar la constancia de rendimiento académico, deberá tener en cuenta los siguientes puntos:</p><ol class="list-decimal pl-5 space-y-1"><li>Las constancias de rendimiento académico se emiten en formato digital.</li><li>Deberá revisar los modelos de constancias a través del siguiente enlace: <a class="underline text-[var(--esan-red)] font-semibold" target="_blank" rel="noopener" href="https://uevirtual.ue.edu.pe/intranet/images/01-ServAcademico/Tramites-Academicos/MODELOS_DE_CONSTANCIAS_DE_RENDIMIENTO_ACADEMICO.pdf">Ver modelos de constancias</a>.</li><li>Por medidas de seguridad, la constancia se enviará únicamente al correo institucional y al correo personal registrado en nuestra base de datos. En caso requiera actualizar su correo personal, deberá detallar la nueva dirección de e-mail y enviarnos la foto de su DNI para validar su identidad y proceder con el cambio solicitado.</li></ol></div>`;
-  document.getElementById("viewer").innerHTML=`${header}<form id="formularioCaja" class="glass rounded-2xl p-6 sm:p-8 space-y-6" novalidate onsubmit="event.preventDefault(); validarFormularioCaja('constanciasAcademicas');"><section><label class="field-label" for="tipoConstanciaCaja">Seleccione el tipo de constancia *</label><select id="tipoConstanciaCaja" name="tipoConstanciaCaja" class="field" required onchange="actualizarCamposConstanciaAcademica()"><option value="">Seleccione una constancia</option><option value="constanciaPromedio">Constancia de Promedio Ponderado Acumulado — S/ 10.00</option><option value="constanciaCreditos">Constancia de Número de Créditos Acumulados — S/ 10.00</option><option value="constanciaRendimientoFacultad">Constancia de Rendimiento Académico por Facultad — S/ 10.00</option><option value="constanciaRendimientoPromedio">Constancia de Rendimiento Académico y Promedio Ponderado — S/ 20.00</option></select></section><section class="border-t border-gray-200 pt-6"><h3 class="text-lg font-extrabold text-gray-900 mb-5">Datos del estudiante</h3><div class="grid sm:grid-cols-2 gap-5"><div><label class="field-label" for="cajaCodigo">Código de estudiante *</label><input id="cajaCodigo" name="codigo" class="field bg-gray-100 cursor-not-allowed" type="text" inputmode="numeric" maxlength="8" pattern="[0-9]{8}" required value="${atributoCodigoSesion()}" readonly aria-readonly="true"></div><div><label class="field-label" for="cajaCorreoInstitucional">Correo al que se enviará el ticket de solicitud</label><input id="cajaCorreoInstitucional" name="correoInstitucional" class="field bg-gray-100 cursor-not-allowed" type="email" readonly aria-readonly="true" placeholder="Se completará automáticamente con su código"></div><div class="sm:col-span-2"><label class="field-label" for="cajaNombre">Apellidos y nombres completos *</label><input id="cajaNombre" name="nombreCompleto" class="field uppercase" type="text" required placeholder="APELLIDOS Y NOMBRES" autocomplete="name"><p class="helper">Escriba sus datos en el orden indicado.</p></div><div class="sm:col-span-2"><label class="field-label" for="cajaCarrera">Carrera actual *</label><select id="cajaCarrera" name="carrera" class="field" required>${carreraOptions}</select></div></div></section><div id="camposEspecificosConstanciaAcademica"></div><section class="border-t border-gray-200 pt-6"><h3 class="text-lg font-extrabold text-gray-900 mb-4">Declaraciones obligatorias</h3><div class="space-y-3"><label class="flex items-start gap-3 rounded-xl border border-gray-200 p-4 cursor-pointer"><input type="checkbox" name="declaracionConsentimiento" class="declaracionCaja mt-1 accent-red-600" required><span class="text-sm leading-relaxed text-gray-700">Declaro que todos los datos expresados en este documento constituyen mi consentimiento libre y voluntario.</span></label><label class="flex items-start gap-3 rounded-xl border border-gray-200 p-4 cursor-pointer"><input type="checkbox" name="declaracionFormulario" class="declaracionCaja mt-1 accent-red-600" required><span class="text-sm leading-relaxed text-gray-700">Declaro haber leído y completado conforme el presente formulario.</span></label></div></section><section class="border-t border-gray-200 pt-6 space-y-4"><button type="submit" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--esan-red)] hover:bg-[var(--esan-red-dark)] px-7 py-3.5 text-white font-bold shadow-lg"><i data-lucide="check-circle" class="w-5 h-5"></i>Solicitar constancias académicas</button><p class="helper">Una vez enviada, recibirás el ticket y las indicaciones para continuar con el trámite en tu correo institucional.</p><div id="estadoCaja" class="hidden rounded-xl border p-4 text-sm" aria-live="polite"></div></section></form></div>`;
+  document.getElementById("viewer").innerHTML=`${header}<form id="formularioCaja" class="glass rounded-2xl p-6 sm:p-8 space-y-6" novalidate onsubmit="event.preventDefault(); validarFormularioCaja('constanciasAcademicas');"><section><label class="field-label" for="tipoConstanciaCaja">Seleccione el tipo de constancia *</label><select id="tipoConstanciaCaja" name="tipoConstanciaCaja" class="field" required onchange="actualizarCamposConstanciaAcademica()"><option value="">Seleccione una constancia</option><option value="constanciaPromedio">Constancia de Promedio Ponderado Acumulado — S/ 10.00</option><option value="constanciaCreditos">Constancia de Número de Créditos Acumulados — S/ 10.00</option><option value="constanciaRendimientoFacultad">Constancia de Rendimiento Académico por Facultad — S/ 10.00</option><option value="constanciaRendimientoPromedio">Constancia de Rendimiento Académico y Promedio Ponderado — S/ 20.00</option></select></section><section class="border-t border-gray-200 pt-6"><h3 class="text-lg font-extrabold text-gray-900 mb-5">DATOS DEL ESTUDIANTE</h3><div class="grid sm:grid-cols-2 gap-5"><div><label class="field-label" for="cajaCodigo">Código de estudiante *</label><input id="cajaCodigo" name="codigo" class="field bg-gray-100 cursor-not-allowed" type="text" inputmode="numeric" maxlength="8" pattern="[0-9]{8}" required value="${atributoCodigoSesion()}" readonly aria-readonly="true"></div><div><label class="field-label" for="cajaCorreoInstitucional">Correo al que se enviará el ticket de solicitud</label><input id="cajaCorreoInstitucional" name="correoInstitucional" class="field bg-gray-100 cursor-not-allowed" type="email" readonly aria-readonly="true" placeholder="Se completará automáticamente con su código"></div><div class="sm:col-span-2"><label class="field-label" for="cajaNombre">Apellidos y nombres completos *</label><input id="cajaNombre" name="nombreCompleto" class="field uppercase" type="text" required placeholder="APELLIDOS Y NOMBRES" autocomplete="name"><p class="helper select-none">Escriba sus datos en el orden indicado.</p></div><div class="sm:col-span-2"><label class="field-label" for="cajaCarrera">Carrera actual *</label><select id="cajaCarrera" name="carrera" class="field" required>${carreraOptions}</select></div></div></section><div id="camposEspecificosConstanciaAcademica"></div><section class="border-t border-gray-200 pt-6"><h3 class="text-lg font-extrabold text-gray-900 mb-4">DECLARACIONES OBLIGATORIAS</h3><div class="space-y-3"><label class="flex items-start gap-3 rounded-xl border border-gray-200 p-4 cursor-pointer"><input type="checkbox" name="declaracionConsentimiento" class="declaracionCaja mt-1 accent-red-600" required><span class="text-sm leading-relaxed text-gray-700">Declaro que todos los datos expresados en este documento constituyen mi consentimiento libre y voluntario.</span></label><label class="flex items-start gap-3 rounded-xl border border-gray-200 p-4 cursor-pointer"><input type="checkbox" name="declaracionFormulario" class="declaracionCaja mt-1 accent-red-600" required><span class="text-sm leading-relaxed text-gray-700">Declaro haber leído y completado conforme el presente formulario.</span></label></div></section><section class="border-t border-gray-200 pt-6 space-y-4"><button type="submit" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--esan-red)] hover:bg-[var(--esan-red-dark)] px-7 py-3.5 text-white font-bold shadow-lg"><i data-lucide="check-circle" class="w-5 h-5"></i>Solicitar constancias académicas</button><p class="helper">Una vez enviada, recibirás el ticket y las indicaciones para continuar con el trámite en tu correo institucional.</p><div id="estadoCaja" class="hidden rounded-xl border p-4 text-sm" aria-live="polite"></div></section></form></div>`;
   document.getElementById("topTitle").textContent=tramite.nombre;actualizarMenuActivo(tramite.key);toggleMenu(false);
   const code=document.getElementById("cajaCodigo");if(code){code.value=obtenerCodigoSesion();code.readOnly=true;code.classList.add("bg-gray-100","cursor-not-allowed");}
   const email=document.getElementById("cajaCorreoInstitucional");if(email)email.value=code?.value.trim()?`${code.value.trim()}@ue.edu.pe`:"";
@@ -2348,270 +1977,8 @@ function validarFormularioCaja(key){
 }
 
 /* ============================================================
-   SERVICIOS ACADÉMICOS — FORMULARIOS GENERALES
-   ------------------------------------------------------------
-   Cada trámite tiene un bloque case propio. Busca el comentario
-   con su nombre para editar solo sus campos, información o declaraciones.
-   ============================================================
-   FORMULARIOS DE SERVICIOS ACADÉMICOS
-   ------------------------------------------------------------
-   Esta función construye los campos según el trámite seleccionado.
-   Las opciones y requisitos propuestos se pueden editar aquí sin
-   tener que modificar el diseño común de todos los formularios.
-
-   Los archivos se pueden seleccionar en esta vista, pero el envío
-   real de archivos requiere conectar el formulario con Apps Script
-   y un mecanismo de almacenamiento. La validación actual es local.
+   NAVEGACIÓN DEL SIMULADOR
    ============================================================ */
-function renderFormularioGenerico(tramite){
-  if(["examenRezagados","emisionSilabos","constanciaConducta","constanciaPrimeraMatricula","constanciaPromedio","constanciaCreditos","constanciaRendimientoFacultad","constanciaRendimientoPromedio","constanciasAcademicas"].includes(tramite.key)){
-    renderFormularioCaja(tramite);
-    return;
-  }
-  if(["retiroCurso","retiroCursoMenorCarga","retiroCiclo","retiroDefinitivo"].includes(tramite.key)){
-    renderFormularioRetiro(tramite);
-    return;
-  }
-
-  const key = tramite.key;
-  const code = atributoCodigoSesion();
-  const carreras = opcionesCarrerasHTML();
-  const ciclos = Array.from({length:(2026-2003)*2+2},(_,i)=>{
-    const year=2003+Math.floor(i/2), sem=(i%2)+1;
-    return `${year}-${sem}`;
-  });
-  const ciclosCortos = ["2026-1","2026-2","2027-1","2027-2","OTRO"];
-  const ciclosHtml = `<option value="">SELECCIONE UN CICLO</option>${ciclos.map(c=>`<option value="${c}">${c}</option>`).join("")}`;
-  const ciclosCortosHtml = `<option value="">SELECCIONE UN CICLO</option>${ciclosCortos.map(c=>`<option value="${c}">${c}</option>`).join("")}`;
-  const declConsentimiento = "Declaro que todos los datos expresados en este documento constituyen mi consentimiento libre y voluntario.";
-  const declFormato = `Declaro haber leído y completado conforme el formato de ${tramite.nombre}.`;
-
-  // Helpers pequeños para que los campos nuevos sean fáciles de leer y mantener.
-  const input = (id,label,type="text",required=true,extra="") => `<div><label class="field-label" for="${id}">${label}</label><input id="${id}" name="${id}" class="field" type="${type}" ${required?"required":""} ${extra}></div>`;
-  const textarea = (id,label,required=true,placeholder="Escriba aquí") => `<div class="sm:col-span-2"><label class="field-label" for="${id}">${label}</label><textarea id="${id}" name="${id}" class="field min-h-28" ${required?"required":""} placeholder="${placeholder}"></textarea></div>`;
-  const select = (id,label,options,required=true) => `<div><label class="field-label" for="${id}">${label}</label><select id="${id}" name="${id}" class="field" ${required?"required":""}><option value="">Seleccione una opción</option>${options.map(o=>`<option value="${escaparHTML(o)}">${escaparHTML(o)}</option>`).join("")}</select></div>`;
-  // Los formatos descargables se publican junto al HTML o se enlazan a la fuente oficial.
-  // Todos los archivos que el estudiante adjunte deben cargarse en PDF.
-  const file = (id,label,required=true,accept=".pdf",link="") => `<div class="sm:col-span-2 format-upload-card rounded-xl border border-gray-200 p-4"><p class="font-bold text-gray-900 mb-3">${link?"DEBERÁ DESCARGAR Y ADJUNTAR EL SIGUIENTE DOCUMENTO:":"ADJUNTAR DOCUMENTO"}</p>${link?`<p class="mb-4"><a class="inline-flex items-center gap-2 rounded-xl bg-[var(--esan-red)] hover:bg-[var(--esan-red-dark)] px-4 py-3 text-white font-bold" target="_blank" rel="noopener" href="${link}"><i data-lucide="download" class="w-4 h-4"></i>DESCARGAR FORMATO DE SOLICITUD</a></p>`:""}<label class="field-label" for="${id}">${label}${required?" *":""}</label><input id="${id}" name="${id}" class="field" type="file" accept=".pdf" ${required?"required":""}><p class="helper mt-2">FORMATO PERMITIDO: PDF.${required?"":" ADJUNTO OPCIONAL."}</p></div>`;
-  const checkbox = text => `<label class="flex items-start gap-3 rounded-xl border border-gray-200 p-4 cursor-pointer"><input type="checkbox" class="declaracionGenerica mt-1 accent-red-600" required><span class="text-sm text-gray-700">${text}</span></label>`;
-  const careerField = `<div><label class="field-label" for="carreraGenerica">Carrera actual</label><select id="carreraGenerica" name="carrera" class="field" required>${carreras}</select></div>`;
-  const courseField = input("cursoGenerico","Curso","text",true,'placeholder="Nombre del curso"');
-  let fields = "", info = "", declarations = [declConsentimiento, declFormato], includeCareer = true;
-
-  switch(key){
-    // SERVICIOS ACADÉMICOS — MATRÍCULA EN MENOS DE 12 CRÉDITOS
-    case "matriculaMenos12":
-      fields = `<div class="grid sm:grid-cols-2 gap-5">${select("ultimoCicloMatricula","Último ciclo matriculado",ciclos)}${select("cicloMatricula","Ciclo a matricular",ciclosCortos)}${input("creditosMatricula","Total de créditos a matricular","number",true,'min="1" max="11" step="1" placeholder="Entre 1 y 11"')}${textarea("motivoMatricula","Motivo de la solicitud",true)}${file("formatoMatriculaMenos12","Solicitud de matrícula en menos de 12 créditos",true,".pdf,.doc,.docx","https://uevirtual.ue.edu.pe/intranet/images/01-ServAcademico/Tramites-Academicos/SOLICITUD_DE_MATR%C3%8DCULA_EN_MENOS_DE_12_CR%C3%89DITOS.docx")}</div>`;
-      info = `<div class="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950 mb-5">El total debe ser de 1 a 11 créditos. Seleccione el ciclo académico correspondiente y adjunte la solicitud completada.</div>`;
-      break;
-    // SERVICIOS ACADÉMICOS — MATRÍCULA EN MÁS DE 24 CRÉDITOS
-    case "matriculaMas24":
-      fields = `<div class="grid sm:grid-cols-2 gap-5">${select("cicloMas24","Ciclo a matricular",ciclosCortos)}${input("creditosMas24","Total de créditos a matricular","number",true,'min="25" step="1" placeholder="25 o más"')}${textarea("motivoMas24","Motivo de la solicitud",true)}${file("formatoMas24","Solicitud de matrícula en más de 24 créditos",true)}</div>`;
-      info = `<div class="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950 mb-5">Indique los motivos por los que solicita superar los 24 créditos y adjunte el formato oficial completado.</div>`;
-      break;
-    // SERVICIOS ACADÉMICOS — MATRÍCULA CON REQUISITO O PRECEDENTE
-    case "matriculaRequisito":
-      fields = `<div class="grid sm:grid-cols-2 gap-5">${select("tipoRequisito","Tipo de solicitud",["MATRÍCULA CON REQUISITO","MATRÍCULA CON PRECEDENTE"])}${select("cicloRequisito","Ciclo académico",ciclosCortos)}${courseField}${textarea("motivoRequisito","Motivo y justificación",true)}${file("formatoRequisito","Formato de solicitud de matrícula con requisito o precedente",true)}${file("sustentoRequisito","Documento de sustento adicional (si corresponde)",false)}</div>`;
-      break;
-    // SERVICIOS ACADÉMICOS — APERTURA DE CURSO
-    case "aperturaCurso":
-      fields = `<div class="grid sm:grid-cols-2 gap-5">${select("cicloApertura","Ciclo académico",ciclosCortos)}${input("seccionApertura","Sección (si corresponde)","text",false,'placeholder="Código de sección")')}${input("cursoApertura","Curso cuya apertura solicita","text",true,'placeholder="Nombre del curso"')}${textarea("motivoApertura","Justificación de la solicitud",true)}${file("formatoApertura","Formato de solicitud de apertura de curso",true)}${file("sustentoApertura","Sustento adicional (si corresponde)",false)}</div>`;
-      break;
-    // SERVICIOS ACADÉMICOS — PRIMERA REVISIÓN DE EXAMEN FINAL
-    case "primeraRevisionFinal":
-    // SERVICIOS ACADÉMICOS — SEGUNDA REVISIÓN DE EXAMEN FINAL
-    case "segundaRevisionFinal":
-      fields = `<div class="grid sm:grid-cols-2 gap-5">${select("cicloRevisionFinal","Ciclo académico",ciclosCortos)}${input("cursoRevisionFinal","Curso","text",true,'placeholder="Nombre del curso"')}${input("seccionRevisionFinal","Sección","text",true)}${input("docenteRevisionFinal","Docente","text",true)}${textarea("motivoRevisionFinal","Motivo de la solicitud",true)}${file("formatoRevisionFinal",`Formato oficial de ${tramite.nombre.toLowerCase()}`,true)}</div>`;
-      break;
-    // SERVICIOS ACADÉMICOS — REVISIÓN DE EVALUACIÓN PERMANENTE (PEP-TA)
-    case "revisionPEPTA":
-      fields = `<div class="grid sm:grid-cols-2 gap-5">${select("cicloPEP","Ciclo actual inscrito",["2026-2"])}${input("cursoPEP","Curso a reclamar","text",true)}${input("seccionPEP","Sección del curso","text",true)}${input("docentePEP","Docente","text",true)}${input("notaPEP","Nota PEP o TA publicada","number",true,'min="0" max="20" step="0.01" placeholder="Solo la nota"')}${file("formatoPEP","Solicitud de reclamo PEP-TA",true,".pdf,.doc,.docx","https://uevirtual.ue.edu.pe/intranet/images/01-ServAcademico/Tramites-Academicos/SOLICITUD_DE_REVISI%C3%93N_DE_EVALUACI%C3%93N_PERMANENTE_PEP_-_TA.docx")}</div>`;
-      info = `<div class="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 mb-5"><strong>Importante:</strong> el plazo límite es de 72 horas desde la publicación de la nota TA. Debe enviarse un formulario por cada curso que desea reclamar.</div>`;
-      declarations = [declConsentimiento,"Declaro haber leído y completado conforme la solicitud de reclamo PEP."];
-      break;
-    // SERVICIOS ACADÉMICOS — PRIMERA REVISIÓN DE EXAMEN DE REZAGADO
-    case "primeraRevisionRezagado":
-    // SERVICIOS ACADÉMICOS — SEGUNDA REVISIÓN DE EXAMEN DE REZAGADO
-    case "segundaRevisionRezagado":
-      fields = `<div class="grid sm:grid-cols-2 gap-5">${select("cicloRevisionRezagado","Ciclo académico",["2026-2"])}${input("cursoRevisionRezagado","Curso","text",true)}${input("seccionRevisionRezagado","Sección","text",true)}${input("docenteRevisionRezagado","Docente","text",true)}${input("fechaExamenRezagado","Fecha del examen","date",true)}${textarea("motivoRevisionRezagado","Motivo de la solicitud",true)}${file("formatoRevisionRezagado",`Formato oficial de ${tramite.nombre.toLowerCase()}`,true)}</div>`;
-      break;
-    // SERVICIOS ACADÉMICOS — CAMBIO DE CARRERA
-    case "cambioCarrera":
-      fields = `<div class="grid sm:grid-cols-2 gap-5">${select("modalidadCambioCarrera","Tipo de modalidad",["ADMISIÓN","BECA PRONABEC","BECA OTROS","INTERCAMBIO","TRASLADO"])}<div id="bloqueCambioCarrera" class="conditional-fields sm:col-span-2"><div class="grid sm:grid-cols-2 gap-5">${select("cantidadCambiosCarrera","Cantidad de cambios de carrera",["PRIMERA VEZ","SEGUNDA VEZ","MÁS DE DOS VECES"])}<div><label class="field-label" for="carreraOrigen">Carrera de origen</label><select id="carreraOrigen" class="field" required>${carreras}</select></div><div><label class="field-label" for="carreraDestino">Carrera a la que desea cambiar</label><select id="carreraDestino" class="field" required>${carreras}</select></div>${file("formatoCambioCarrera","Formato de solicitud de cambio de carrera",true,".pdf,.doc,.docx","https://uevirtual.ue.edu.pe/intranet/images/01-ServAcademico/Tramites-Academicos/SOLICITUD_DE_CAMBIO_DE_CARRERA.docx")}<div id="bloqueVocacional" class="conditional-fields hidden">${file("constanciaVocacional","Constancia de orientación vocacional emitida por Bienestar Estudiantil",true)}</div></div></div><div id="avisoCambioPronabec" class="hidden sm:col-span-2 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"></div></div>`;
-      info = `<div class="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950 mb-5">De conformidad con el Reglamento de Estudios, el cambio de carrera se efectúa al finalizar el período académico.</div>`;
-      declarations = [declConsentimiento,"Declaro que es mi responsabilidad solicitar asesoría con el director o directora de la nueva carrera sobre la equivalencia de cursos.","Declaro haber leído, completado y adjuntado conforme el formato de cambio de carrera."];
-      break;
-    // SERVICIOS ACADÉMICOS — CARTA PODER PARA RECOJO DE EXÁMENES
-    case "cartaPoderExamenes":
-      includeCareer = false;
-      fields = `<div class="grid sm:grid-cols-2 gap-5">${input("tipoDocumentoRecoger","Examen o documento que se recogerá","text",true,'placeholder="Indique qué examen recogerá"')}${input("autorizadoExamenes","Apellidos y nombres de la persona autorizada","text",true,'placeholder="NOMBRE COMPLETO"')}${input("dniAutorizadoExamenes","DNI de la persona autorizada","text",true,'inputmode="numeric" maxlength="8" pattern="[0-9]{8}" placeholder="8 dígitos"')}${file("formatoCartaPoderExamenes","Carta poder para recojo de exámenes, completada y firmada",true)}</div>`;
-      break;
-    // SERVICIOS ACADÉMICOS — CARTA PODER PARA RECOJO DE CARNÉ UNIVERSITARIO
-    case "cartaPoderCarne":
-      includeCareer = false;
-      fields = `<div class="grid sm:grid-cols-2 gap-5">${input("autorizadoCarne","Apellidos y nombres de la persona autorizada","text",true,'placeholder="NOMBRE COMPLETO"')}${input("dniAutorizadoCarne","DNI de la persona autorizada","text",true,'inputmode="numeric" maxlength="8" pattern="[0-9]{8}" placeholder="8 dígitos"')}${file("formatoCartaPoderCarne","Carta poder para recojo de carné universitario, completada y firmada",true)}</div>`;
-      break;
-    // SERVICIOS ACADÉMICOS — CARTA DE PRESENTACIÓN PARA VISITA A EMPRESA
-    case "cartaPresentacionEmpresa":
-      fields = `<div class="grid sm:grid-cols-2 gap-5">${select("cicloCartaEmpresa","Ciclo académico en el que está matriculado",ciclosCortos)}${input("asignaturaCartaEmpresa","Asignatura relacionada con el trabajo de investigación","text",true)}${file("formatoCartaEmpresa","Formato de solicitud de carta de presentación para visita a empresa",true,".pdf,.doc,.docx","https://uevirtual.ue.edu.pe/intranet/images/01-ServAcademico/Tramites-Academicos/SOLICITUD_DE_CARTA_DE_PRESENTACI%C3%93N_PARA_VISITA_A_EMPRESA_vf.docx")}</div>`;
-      info = `<div class="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950 mb-5">La carta no tiene costo, se emite en PDF y el plazo máximo es de 3 días hábiles, contados desde el día siguiente del envío de la solicitud.</div><p class="text-sm text-gray-600 mb-5">Modelo de referencia: <a class="underline text-[var(--esan-red)]" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1DwSbwW8uYLej6_W871pKshfUsj7Ie6zs/view">ver modelo</a>.</p>`;
-      break;
-    // SERVICIOS ACADÉMICOS — SOLICITUD GENERAL
-    case "solicitudGeneral":
-      fields = `<div class="grid sm:grid-cols-2 gap-5">${textarea("motivoSolicitudGeneral","Motivo y detalle de la solicitud",true,"Describa su requerimiento académico o administrativo")}${file("formatoSolicitudGeneral","Solicitud general completada",true,".pdf,.doc,.docx","https://uevirtual.ue.edu.pe/intranet/images/01-ServAcademico/Tramites-Academicos/MODELO_DE_SOLICITUD_GENERAL.docx")}</div>`;
-      info = `<div class="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950 mb-5">Utilice este trámite para solicitudes académicas o administrativas que no se encuentren en la lista de trámites disponibles de Servicios Académicos.</div>`;
-      declarations = [declConsentimiento];
-      break;
-    // SERVICIOS ACADÉMICOS — AUTORIZACIÓN PARA ACCESO A INFORMACIÓN ACADÉMICA
-    case "autorizacionInfoAcademica":
-      includeCareer = false;
-      fields = `<div class="grid sm:grid-cols-2 gap-5">${select("parentescoAutorizado1","Parentesco de la primera persona autorizada",["MADRE","PADRE","TÍA","TÍO","HERMANO","HERMANA","ABUELA","ABUELO","PRIMO","PRIMA","OTRO"])}${input("nombreAutorizado1","Apellidos y nombres de la primera persona autorizada","text",true,'placeholder="NOMBRE COMPLETO"')}${input("dniAutorizado1","Documento de identidad de la primera persona autorizada","text",true,'inputmode="numeric" maxlength="12" placeholder="Número de documento"')}${select("agregarAutorizado2","¿Desea agregar una segunda persona autorizada?",["SÍ","NO"])}<div id="bloqueAutorizado2" class="conditional-fields hidden sm:col-span-2"><div class="grid sm:grid-cols-2 gap-5">${select("parentescoAutorizado2","Parentesco de la segunda persona autorizada",["MADRE","PADRE","TÍA","TÍO","HERMANO","HERMANA","ABUELA","ABUELO","PRIMO","PRIMA","OTRO"],false)}${input("nombreAutorizado2","Apellidos y nombres de la segunda persona autorizada","text",false,'placeholder="NOMBRE COMPLETO"')}${input("dniAutorizado2","Documento de identidad de la segunda persona autorizada","text",false,'inputmode="numeric" maxlength="12" placeholder="Número de documento"') }</div></div>${file("formatoAutorizacionInfo","Autorización para el acceso a información académica, completada y firmada",true,".pdf,.doc,.docx","https://uevirtual.ue.edu.pe/intranet/images/AUTORIZACI%C3%93N_PARA_EL_ACCESO_DE_INFORMACI%C3%93N_ACAD%C3%89MICA.docx")}</div>`;
-      declarations = ["Autorizo de forma libre, previa, informada, inequívoca y expresa, mediante la suscripción del presente documento y aceptación, el tratamiento de mis datos personales.","Declaro que la persona autorizada en dicho documento podrá solicitar la información académica en la oficina de Servicios Académicos."];
-      info = `<div class="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950 mb-5">La información académica se entrega al estudiante, salvo autorización expresa. La persona autorizada deberá presentar una fotografía de su DNI para validar su identidad al solicitar información. Si autoriza a dos personas, el formato debe incluir los datos y firmas de ambas.</div>`;
-      break;
-    // SERVICIOS ACADÉMICOS — CUARTA MATRÍCULA
-    case "cuartaMatricula":
-      fields = `<div class="grid sm:grid-cols-2 gap-5">${input("dniCuartaMatricula","DNI del estudiante","text",true,'inputmode="numeric" maxlength="8" pattern="[0-9]{8}"')}${input("cursoCuartaMatricula","Curso desaprobado por tercera vez","text",true)}${select("cicloCuartaMatricula","Ciclo en el que desaprobó el curso por tercera vez",ciclosCortos)}${textarea("motivoCuartaMatricula","Razones que motivan la solicitud y sustento",true)}${textarea("compromisosCuartaMatricula","Estrategias y compromisos para asegurar la aprobación",true)}${file("formatoCuartaMatricula","Solicitud de cuarta matrícula dirigida al Decano, completada y firmada",true)}${file("sustentoCuartaMatricula","Documentación sustentatoria adicional (si corresponde)",false)}</div>`;
-      info = `<div class="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 mb-5"><p class="font-bold">Requisitos según el manual proporcionado</p><ul class="list-disc pl-5 mt-2 space-y-1"><li>Tener aprobados al menos 36 créditos.</li><li>Haber desaprobado un único curso por tercera vez.</li><li>Haber transcurrido dos ciclos regulares desde que perdió la condición de alumno.</li><li>No haber incurrido en una falta disciplinaria que amerite separación definitiva.</li><li>Solo podrá matricularse en ese curso durante un semestre regular.</li></ul><p class="mt-2">El manual indica un pago de S/ 250. Solicite primero el código de pago a Servicios Académicos. Las fechas del manual son históricas y deben verificarse para el ciclo vigente.</p></div>`;
-      declarations = ["Declaro que conozco el procedimiento para el trámite de cuarta matrícula, así como los plazos de respuesta y las condiciones establecidas.",declConsentimiento];
-      break;
-    default:
-      fields = `<div class="grid sm:grid-cols-2 gap-5">${courseField}${textarea("motivoGenerico","Motivo de la solicitud",true)}${file("formatoGenerico",`Formato oficial de ${tramite.nombre.toLowerCase()}`,true)}</div>`;
-  }
-
-  const carreraHtml = includeCareer ? careerField : "";
-  document.getElementById("viewer").innerHTML = `
-    <div class="max-w-4xl mx-auto animate-[fadeIn_0.3s]">
-      <button type="button" onclick="renderContent('home')" class="inline-flex items-center gap-2 text-sm font-bold text-[var(--esan-red)] hover:underline mb-5"><i data-lucide="arrow-left" class="w-4 h-4"></i>Volver a todos los trámites</button>
-      <section class="glass rounded-2xl p-6 sm:p-8 border-l-4 border-[var(--esan-red)] mb-6"><div class="flex items-start gap-4"><div class="w-14 h-14 rounded-2xl bg-red-50 text-[var(--esan-red)] flex items-center justify-center shrink-0"><i data-lucide="${tramite.icono}" class="w-7 h-7"></i></div><div><p class="text-xs uppercase tracking-[.2em] text-[var(--esan-red)] font-bold">Servicios Académicos</p><h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1">${tramite.nombre}</h2><p class="text-sm text-gray-500 mt-2">Completa los campos obligatorios y adjunta el formato correspondiente.</p></div></div></section>
-      ${info}
-      <section class="glass rounded-2xl p-6 sm:p-8">
-        <form id="formGenerico" class="space-y-6" novalidate onsubmit="event.preventDefault(); validarFormularioGenerico('${tramite.key}');">
-          <!-- El código se hereda de la pantalla de acceso; el estudiante no vuelve a escribirlo. -->
-          <section><h3 class="text-lg font-extrabold text-gray-900 mb-5">Datos del estudiante</h3><div class="grid sm:grid-cols-2 gap-5">
-            <div><label class="field-label" for="codigoGenerico">Código de estudiante</label><input id="codigoGenerico" name="codigo" type="text" inputmode="numeric" maxlength="8" class="field bg-gray-100 cursor-not-allowed" value="${code}" readonly aria-readonly="true" required><p class="helper">Se completa automáticamente desde el acceso.</p></div>
-            <div><label class="field-label" for="nombreCompleto">Apellidos y nombres completos</label><input id="nombreCompleto" name="nombreCompleto" type="text" class="field" placeholder="APELLIDOS Y NOMBRES" autocomplete="name" required></div>
-            ${carreraHtml}
-          </div></section>
-          <section class="border-t border-gray-200 pt-6"><h3 class="text-lg font-extrabold text-gray-900 mb-5">Información de la solicitud</h3>${fields}</section>
-          <section class="border-t border-gray-200 pt-6"><h3 class="text-lg font-extrabold text-gray-900 mb-4">Declaraciones obligatorias</h3><div class="space-y-3">${declarations.map(d=>checkbox(d)).join("")}</div></section>
-          <button type="submit" class="w-full sm:w-auto inline-flex justify-center items-center gap-2 px-7 py-3.5 rounded-xl bg-[var(--esan-red)] hover:bg-[var(--esan-red-dark)] text-white font-bold transition shadow-lg"><i data-lucide="check-circle" class="w-5 h-5"></i>Validar solicitud</button>
-        </form>
-        <div id="estadoFormularioGenerico" class="hidden mt-6 rounded-xl border p-4 text-sm leading-relaxed" aria-live="polite"></div>
-      </section>
-
-    </div>`;
-
-  document.getElementById("topTitle").textContent = tramite.nombre;
-  actualizarMenuActivo(tramite.key);
-  toggleMenu(false);
-  const name = document.getElementById("nombreCompleto");
-  name?.addEventListener("input", () => { name.value = name.value.toLocaleUpperCase("es-PE"); });
-
-  // Mostrar u ocultar preguntas según modalidad y número de cambios.
-  const modalidad = document.getElementById("modalidadCambioCarrera");
-  const bloqueCambio = document.getElementById("bloqueCambioCarrera");
-  const avisoPronabec = document.getElementById("avisoCambioPronabec");
-  const cantidadCambios = document.getElementById("cantidadCambiosCarrera");
-  const bloqueVocacional = document.getElementById("bloqueVocacional");
-  const actualizarCambioCarrera = () => {
-    if(!modalidad) return;
-    const pronabec = modalidad.value === "BECA PRONABEC";
-    bloqueCambio?.classList.toggle("hidden", pronabec || !modalidad.value);
-    if(avisoPronabec){
-      avisoPronabec.classList.toggle("hidden", !pronabec);
-      avisoPronabec.innerHTML = pronabec ? `Los estudiantes con Beca Pronabec deben solicitar el cambio de carrera directamente con la coordinadora del programa: <a class="font-bold underline" href="mailto:amadariaga@esan.edu.pe">amadariaga@esan.edu.pe</a>. Este formulario no se utiliza para registrar su solicitud.` : "";
-    }
-    bloqueCambio?.querySelectorAll("input,select,textarea").forEach(el => { el.required = !pronabec && !!modalidad.value && el.id !== "constanciaVocacional"; });
-    if(pronabec && bloqueVocacional){ const f=bloqueVocacional.querySelector("input"); if(f) f.required=false; }
-  };
-  modalidad?.addEventListener("change", actualizarCambioCarrera);
-  cantidadCambios?.addEventListener("change", () => {
-    const necesita = ["SEGUNDA VEZ","MÁS DE DOS VECES"].includes(cantidadCambios.value);
-    bloqueVocacional?.classList.toggle("hidden", !necesita);
-    const fileInput = document.getElementById("constanciaVocacional");
-    if(fileInput) fileInput.required = necesita;
-  });
-  document.getElementById("agregarAutorizado2")?.addEventListener("change", e => {
-    const bloque = document.getElementById("bloqueAutorizado2");
-    const mostrar = e.target.value === "SÍ";
-    bloque?.classList.toggle("hidden", !mostrar);
-    bloque?.querySelectorAll("input,select").forEach(el => el.required = mostrar);
-  });
-  actualizarCambioCarrera();
-  inicializarCamposOtro(document.getElementById("formGenerico"));
-  actualizarIconos();
-  document.getElementById("viewer").scrollTop = 0;
-}
-
-/* Validación local: revisa campos, adjuntos y declaraciones. No envía datos todavía. */
-/* SERVICIOS ACADÉMICOS — validación de los formularios generales. */
-function limpiarErroresGenericos(){
-  const estado = document.getElementById("estadoFormularioGenerico");
-  if(estado) estado.classList.add("hidden");
-  document.querySelectorAll("#formGenerico .field-error").forEach(el=>el.classList.remove("field-error"));
-}
-
-function validarFormularioGenerico(key){
-  limpiarErroresGenericos();
-  const form = document.getElementById("formGenerico");
-  const estado = document.getElementById("estadoFormularioGenerico");
-  if(!form || !estado) return;
-
-  // Beca Pronabec debe continuar por el canal indicado, no por este formulario.
-  if(key === "cambioCarrera" && document.getElementById("modalidadCambioCarrera")?.value === "BECA PRONABEC"){
-    estado.className = "mt-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950";
-    estado.innerHTML = 'Para solicitar el cambio de carrera con Beca Pronabec, escribe a <a class="font-bold underline" href="mailto:amadariaga@esan.edu.pe">amadariaga@esan.edu.pe</a>. No se registró una solicitud.';
-    estado.classList.remove("hidden");
-    return;
-  }
-
-  const errores = [];
-  const codigo = document.getElementById("codigoGenerico")?.value.trim() || "";
-  if(!/^\d{8}$/.test(codigo)) errores.push("El código de la sesión no tiene ocho dígitos. Vuelve a iniciar el acceso.");
-  errores.push(...obtenerErroresCamposObligatorios(form).map(error=>error.mensaje));
-
-  if(key === "matriculaMenos12"){
-    const n=Number(document.getElementById("creditosMatricula")?.value || 0);
-    if(!Number.isInteger(n) || n<1 || n>11) errores.push("El total de créditos debe estar entre 1 y 11.");
-  }
-  if(key === "matriculaMas24"){
-    const n=Number(document.getElementById("creditosMas24")?.value || 0);
-    if(!Number.isInteger(n) || n<=24) errores.push("El total de créditos debe ser mayor que 24.");
-  }
-  if(key === "cambioCarrera"){
-    const origen=document.getElementById("carreraOrigen")?.value;
-    const destino=document.getElementById("carreraDestino")?.value;
-    if(origen && destino && origen===destino) errores.push("La carrera de origen y la carrera de destino deben ser diferentes.");
-  }
-
-  if(errores.length){
-    estado.className = "mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900";
-    estado.innerHTML = `<strong>Revisa lo siguiente:</strong><ul class="list-disc pl-5 mt-2 space-y-1">${[...new Set(errores)].map(e=>`<li>${escaparHTML(e)}</li>`).join("")}</ul>`;
-    estado.classList.remove("hidden");
-    estado.scrollIntoView({behavior:"smooth",block:"nearest"});
-    return;
-  }
-
-  const datosFormulario = recopilarDatosFormulario(form);
-  const detallesOtro = {};
-  form.querySelectorAll("[data-otro-campo]").forEach(input => {
-    if(String(input.value || "").trim()) detallesOtro[input.name || input.dataset.otroCampo] = String(input.value).trim();
-  });
-  ultimaSolicitudFormularioPreparada = {
-    accion: "registrarSolicitud",
-    tramite: key,
-    fechaRegistro: new Date().toISOString(),
-    datos: datosFormulario,
-    detallesOtro: detallesOtro
-  };
-  estado.className = "mt-6 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-900";
-  estado.innerHTML = "<strong>Los campos obligatorios se validaron correctamente.</strong><p class=\"mt-2\">Revisa que la información ingresada sea correcta.</p>";
-  estado.classList.remove("hidden");
-  agregarBotonConfirmarSolicitud(estado);
-  estado.scrollIntoView({behavior:"smooth",block:"nearest"});
-}
-
 function toggleMenu(force){
   const sidebar = document.getElementById("sidebar");
   const backdrop = document.getElementById("mobileBackdrop");
@@ -2919,7 +2286,6 @@ function determinarSituacion(ciclosSuspendidos){
 /* ============================================================
    FORMULARIO
    ============================================================ */
-function alternarOtroMotivoRetorno(){const select=document.getElementById("motivoRetorno");if(select)manejarCampoOtro(select);ocultarResultadoSiExiste();}
 
 function prepararFormularioRetorno(){
   const carrera = document.getElementById("carrera");
@@ -3325,7 +2691,6 @@ function validarFormulario(){
    RESULTADO DE RESERVA / REINCORPORACIÓN
    ============================================================ */
 let ultimoResultado = null;
-let modoTramiteRetorno = "automatico";
 
 function calcularRetorno(){
   // Antes de calcular, se deben completar TODOS los campos obligatorios,
@@ -3378,12 +2743,6 @@ function calcularRetorno(){
     fechaRegistro: new Date().toISOString()
   };
   mostrarResultado(ultimoResultado, situacion);
-}
-function cambiarModoRetorno(){
-  // Se conserva como función auxiliar por compatibilidad; ya no se requiere
-  // que el estudiante seleccione manualmente Reserva o Reincorporación.
-  modoTramiteRetorno = "automatico";
-  calcularRetorno();
 }
 
 function formatoMonto(monto){
@@ -3656,7 +3015,7 @@ function agregarBotonConfirmarSolicitud(estado){
 }
 
 async function confirmarSolicitudPreparada(){
-  const estado=document.querySelector("#estadoFormularioGenerico, #estadoCaja, #estadoFormularioRetiro");
+  const estado=document.querySelector("#estadoCaja");
   if(!ultimaSolicitudFormularioPreparada){if(estado)estado.textContent="No hay una solicitud preparada para enviar.";return;}
   if(!tokenSesionActivo){if(estado)estado.textContent="Tu sesión no está validada. Vuelve a verificar tu correo institucional.";return;}
   const boton=estado?.querySelector('[data-confirmar-solicitud="true"]');
@@ -3692,6 +3051,8 @@ const loginPanel = document.getElementById("loginDesktopPanel");
 if(loginPanel) loginPanel.style.backgroundImage = `linear-gradient(180deg,rgba(17,24,39,.10),rgba(17,24,39,.82)),url("${IMAGEN_ESAN_DATA_URI}")`;
 const loginMobile = document.getElementById("loginMobilePhoto");
 if(loginMobile) loginMobile.style.backgroundImage = `linear-gradient(0deg,rgba(17,24,39,.25),rgba(17,24,39,.05)),url("${IMAGEN_ESAN_DATA_URI}")`;
+// Al cambiar cualquier desplegable, muestra/oculta su casilla «Otro» cuando corresponda.
+// asegurarCampoOtro() excluye los campos que ya tienen un comportamiento personalizado.
 document.addEventListener("change", event => {
   if(event.target?.tagName === "SELECT") manejarCampoOtro(event.target);
 });
