@@ -347,9 +347,10 @@
           </div>
           <div id="codigoVerificacionContenedor" class="hidden">
             <label class="field-label" for="codigoVerificacion">Código de verificación</label>
-            <input id="codigoVerificacion" class="field" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="Ingresa el código de 6 dígitos">
+            <input id="codigoVerificacion" class="field" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="Ingresa los 6 dígitos recibidos">
+            <p class="mt-2 text-xs leading-relaxed text-gray-600">Coloca aquí el código de verificación recibido en tu correo institucional.</p>
             <p id="codigoVerificacionError" class="error-text hidden"></p>
-            <button type="button" onclick="solicitarCodigoAcceso(true)" class="mt-2 text-sm font-semibold text-[var(--esan-red)] hover:underline">Reenviar código</button>
+            <button id="btnReenviarCodigo" type="button" onclick="solicitarCodigoAcceso(true)" disabled class="mt-3 text-sm font-semibold text-[var(--esan-red)] disabled:cursor-not-allowed disabled:opacity-60 hover:underline">Reenviar código (02:00)</button>
           </div>
           <button id="btnSolicitarCodigo" type="submit" class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--esan-red)] hover:bg-[var(--esan-red-dark)] px-5 py-3.5 text-white font-bold shadow-sm transition">
             <i data-lucide="mail-check" class="w-5 h-5"></i> Enviar código de verificación
@@ -765,7 +766,7 @@ const TRAMITES_DISPONIBLES = [
   },
   {
     key: "constanciasAcademicas",
-    nombre: "Constancias académicas",
+    nombre: "Constancias Académicas",
     icono: "files",
     descripcion: "Aquí encontrarás cuatro diferentes tipos de constancias académicas. El costo varía según la constancia que selecciones."
   }
@@ -919,7 +920,6 @@ const db = {
                   <input id="codigo" name="codigo" type="text" inputmode="numeric" maxlength="8"
                          class="field bg-gray-100 cursor-not-allowed" value="${atributoCodigoSesion()}"
                          autocomplete="off" readonly aria-readonly="true" required>
-                  <p class="helper">Se completa automáticamente con el código de tu sesión.</p>
                   <p id="err-codigo" class="error-text hidden"></p>
                 </div>
                 <div>
@@ -994,7 +994,6 @@ const db = {
 
                 <div id="bloqueCiclosReserva" class="hidden rounded-xl border border-blue-200 bg-blue-50 p-4 sm:p-5 space-y-3">
                   <label class="field-label">¿EN QUÉ CICLO(S) INTERMEDIO(S) REALIZASTE Y PAGASTE LA RESERVA?</label>
-                  <p class="helper">Puedes seleccionar uno o dos ciclos. Si seleccionas dos, deben ser consecutivos. No se mostrarán el último ciclo que estudiaste ni el ciclo al que retornarás.</p>
                   <div id="opcionesCiclosReserva" class="grid sm:grid-cols-2 gap-2"></div>
                   <p id="mensajeCiclosReserva" class="helper"></p>
                   <p id="err-ciclosReservaPagada" class="error-text hidden"></p>
@@ -1222,6 +1221,63 @@ function actualizarIconos(){
 
 let tokenSesionActivo = "";
 let codigoEstudianteActivo = "";
+let intervaloReenvioCodigo = null;
+let segundosReenvioCodigo = 0;
+
+function formatoTiempoReenvio(segundos){
+  const minutos = Math.floor(Math.max(0, segundos) / 60);
+  const resto = Math.max(0, segundos) % 60;
+  return `${String(minutos).padStart(2,"0")}:${String(resto).padStart(2,"0")}`;
+}
+
+function actualizarBotonReenvioCodigo(){
+  const boton = document.getElementById("btnReenviarCodigo");
+  if(!boton) return;
+  const esperando = segundosReenvioCodigo > 0;
+  boton.disabled = esperando;
+  boton.textContent = esperando
+    ? `Reenviar código (${formatoTiempoReenvio(segundosReenvioCodigo)})`
+    : "Reenviar código";
+}
+
+function iniciarContadorReenvioCodigo(){
+  if(intervaloReenvioCodigo) clearInterval(intervaloReenvioCodigo);
+  segundosReenvioCodigo = 120;
+  actualizarBotonReenvioCodigo();
+  intervaloReenvioCodigo = setInterval(() => {
+    segundosReenvioCodigo = Math.max(0, segundosReenvioCodigo - 1);
+    actualizarBotonReenvioCodigo();
+    if(segundosReenvioCodigo <= 0){
+      clearInterval(intervaloReenvioCodigo);
+      intervaloReenvioCodigo = null;
+    }
+  }, 1000);
+}
+
+function reiniciarPasoVerificacion(){
+  if(intervaloReenvioCodigo) clearInterval(intervaloReenvioCodigo);
+  intervaloReenvioCodigo = null;
+  segundosReenvioCodigo = 0;
+  codigoEstudianteActivo = "";
+  const otp = document.getElementById("codigoVerificacion");
+  if(otp) otp.value = "";
+  document.getElementById("codigoVerificacionError")?.classList.add("hidden");
+  document.getElementById("codigoVerificacionContenedor")?.classList.add("hidden");
+  document.getElementById("btnConfirmarCodigo")?.classList.add("hidden");
+  const boton = document.getElementById("btnSolicitarCodigo");
+  if(boton){
+    boton.classList.remove("hidden");
+    boton.disabled = false;
+    boton.innerHTML = '<i data-lucide="mail-check" class="w-5 h-5"></i> Enviar código de verificación';
+    actualizarIconos();
+  }
+  const reenviar = document.getElementById("btnReenviarCodigo");
+  if(reenviar){
+    reenviar.disabled = true;
+    reenviar.textContent = "Reenviar código (02:00)";
+  }
+  document.getElementById("loginEstado")?.classList.add("hidden");
+}
 
 function mostrarEstadoAcceso(id, mensaje, tipo="info"){
   const estado=document.getElementById(id);
@@ -1262,32 +1318,73 @@ async function solicitarCodigoAcceso(reenviar=false){
   const codigo=String(input?.value||"").trim();
   const error=document.getElementById("loginCodigoError");
   if(error) error.classList.add("hidden");
-  if(!/^\d{8}$/.test(codigo)){
+  if(!/^\\d{8}$/.test(codigo)){
     if(error){error.textContent="Ingresa un código de estudiante de exactamente 8 dígitos.";error.classList.remove("hidden");}
     input?.classList.add("field-error");
+    return;
+  }
+  if(reenviar && (segundosReenvioCodigo > 0)){
+    actualizarBotonReenvioCodigo();
     return;
   }
   input?.classList.remove("field-error");
   actualizarCorreoInstitucionalVista();
   const boton=document.getElementById("btnSolicitarCodigo");
-  if(boton){boton.disabled=true;boton.innerHTML="Enviando código...";}
-  mostrarEstadoAcceso("loginEstado","Estamos verificando tu código y enviando el mensaje al correo institucional...");
+  const botonReenviar=document.getElementById("btnReenviarCodigo");
+  if(reenviar){
+    if(botonReenviar){botonReenviar.disabled=true;botonReenviar.textContent="Enviando código...";}
+  }else if(boton){
+    boton.disabled=true;
+    boton.innerHTML="Enviando código...";
+  }
+  mostrarEstadoAcceso("loginEstado",reenviar
+    ? "Estamos enviando un nuevo código a tu correo institucional..."
+    : "Estamos verificando tu código y enviando el mensaje al correo institucional...");
   try {
     const res=await llamarBackend("iniciarVerificacion",codigo);
-    if(boton){boton.disabled=false;boton.innerHTML='<i data-lucide="mail-check" class="w-5 h-5"></i> Enviar código de verificación';actualizarIconos();}
     if(!res || !res.ok){
+      if(boton && !reenviar){
+        boton.disabled=false;
+        boton.innerHTML='<i data-lucide="mail-check" class="w-5 h-5"></i> Enviar código de verificación';
+        actualizarIconos();
+      }
+      if(botonReenviar && reenviar){
+        botonReenviar.disabled=false;
+        botonReenviar.textContent="Reenviar código";
+      }
       mostrarEstadoAcceso("loginEstado",res?.mensaje||"No se pudo validar el acceso. Verifica el código o comunícate con Servicios Académicos.","error");
       return;
     }
     codigoEstudianteActivo=codigo;
-    document.getElementById("correoInstitucionalMostrar").value=codigo+"@ue.edu.pe";
-    document.getElementById("correoInstitucionalContenedor").classList.remove("hidden");
-    document.getElementById("codigoVerificacionContenedor").classList.remove("hidden");
-    document.getElementById("btnConfirmarCodigo").classList.remove("hidden");
+    const correo=document.getElementById("correoInstitucionalMostrar");
+    if(correo) correo.value=codigo+"@ue.edu.pe";
+    document.getElementById("correoInstitucionalContenedor")?.classList.remove("hidden");
+    document.getElementById("codigoVerificacionContenedor")?.classList.remove("hidden");
+    document.getElementById("btnConfirmarCodigo")?.classList.remove("hidden");
+    if(boton){
+      boton.disabled=false;
+      boton.innerHTML='<i data-lucide="mail-check" class="w-5 h-5"></i> Enviar código de verificación';
+      if(!reenviar) boton.classList.add("hidden");
+      actualizarIconos();
+    }
+    if(reenviar){
+      const otp=document.getElementById("codigoVerificacion");
+      if(otp) otp.value="";
+      document.getElementById("codigoVerificacionError")?.classList.add("hidden");
+    }
+    iniciarContadorReenvioCodigo();
     document.getElementById("codigoVerificacion")?.focus();
     mostrarEstadoAcceso("loginEstado",res.mensaje||"Enviamos un código temporal a tu correo institucional. Revisa también la carpeta de correo no deseado.","success");
   } catch(err) {
-    if(boton){boton.disabled=false;boton.innerHTML='<i data-lucide="mail-check" class="w-5 h-5"></i> Enviar código de verificación';actualizarIconos();}
+    if(boton && !reenviar){
+      boton.disabled=false;
+      boton.innerHTML='<i data-lucide="mail-check" class="w-5 h-5"></i> Enviar código de verificación';
+      actualizarIconos();
+    }
+    if(botonReenviar && reenviar){
+      botonReenviar.disabled=false;
+      botonReenviar.textContent="Reenviar código";
+    }
     console.error(err);
     mostrarEstadoAcceso("loginEstado",err?.message||"Ocurrió un problema al enviar el código. Inténtalo nuevamente o comunícate con Servicios Académicos.","error");
   }
@@ -1313,6 +1410,8 @@ async function confirmarCodigoAcceso(){
     }
     tokenSesionActivo=res.sesionToken;
     codigoEstudianteActivo=codigo;
+    if(intervaloReenvioCodigo) clearInterval(intervaloReenvioCodigo);
+    intervaloReenvioCodigo=null;
     document.getElementById("app").dataset.previewCode=codigo;
     document.getElementById("loginGate").classList.add("hidden");
     renderContent("home");
@@ -1840,7 +1939,7 @@ function llaveCampoOtro(select){
   if(select.id) return select.id;
   const bloque = select.closest(".bloqueExamen");
   const n = bloque?.dataset.examen || "1";
-  const campo = select.classList.contains("examenSeccion") ? "examenSeccion" : select.classList.contains("examenMotivo") ? "examenMotivo" : (select.name || select.className.split(/\s+/).filter(Boolean).join("_"));
+  const campo = select.classList.contains("examenSeccion") ? "examenSeccion" : select.classList.contains("examenMotivo") ? "examenMotivo" : select.classList.contains("examenDocente") ? "examenDocente" : (select.name || select.className.split(/\s+/).filter(Boolean).join("_"));
   return `${campo}_${n}`;
 }
 
@@ -1961,7 +2060,7 @@ function actualizarCamposConstanciaAcademica(){
 function renderFormularioConstanciasAcademicas(tramite){
   const carreraOptions=opcionesCarrerasHTML();
   const header=`<div class="max-w-4xl mx-auto animate-[fadeIn_0.3s]"><button type="button" onclick="renderContent('home')" class="inline-flex items-center gap-2 text-sm font-bold text-[var(--esan-red)] hover:underline mb-5"><i data-lucide="arrow-left" class="w-4 h-4"></i>Volver a todos los trámites</button><section class="glass rounded-2xl p-6 sm:p-8 border-l-4 border-[var(--esan-red)] mb-6"><div class="flex items-start gap-4"><div class="w-14 h-14 rounded-2xl bg-red-50 text-[var(--esan-red)] flex items-center justify-center shrink-0"><i data-lucide="${tramite.icono}" class="w-7 h-7"></i></div><div><p class="text-xs uppercase tracking-[.2em] text-[var(--esan-red)] font-bold">Formulario de solicitud</p><h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1">${tramite.nombre}</h2></div></div></section><div class="rounded-xl border border-blue-200 bg-blue-50 p-4 sm:p-5 text-sm text-blue-950 mb-6 space-y-3"><p>Estimado(a) estudiante:</p><p>Para solicitar la constancia de rendimiento académico, complete los datos solicitados en este formulario. Una vez enviada su solicitud, recibirá un ticket en su correo institucional para continuar con el proceso.</p><p class="font-bold">Importante</p><ul class="list-disc pl-5 space-y-1"><li>La constancia solo detallará la información de un ciclo, si requiere de otros ciclos adicionales se emitirá una constancia por cada ciclo solicitado. Considerar que el costo es por cada constancia emitida.</li><li>El plazo máximo para la emisión es de 7 días hábiles, contados a partir del envío del comprobante de pago.</li></ul><p class="font-bold">Antes de solicitar la constancia de rendimiento académico, deberá tener en cuenta los siguientes puntos:</p><ol class="list-decimal pl-5 space-y-1"><li>Las constancias de rendimiento académico se emiten en formato digital.</li><li>Deberá revisar los modelos de constancias a través del siguiente enlace: <a class="underline text-[var(--esan-red)] font-semibold" target="_blank" rel="noopener" href="https://uevirtual.ue.edu.pe/intranet/images/01-ServAcademico/Tramites-Academicos/MODELOS_DE_CONSTANCIAS_DE_RENDIMIENTO_ACADEMICO.pdf">Ver modelos de constancias</a>.</li><li>Por medidas de seguridad, la constancia se enviará únicamente al correo institucional y al correo personal registrado en nuestra base de datos. En caso requiera actualizar su correo personal, deberá detallar la nueva dirección de e-mail y enviarnos la foto de su DNI para validar su identidad y proceder con el cambio solicitado.</li></ol></div>`;
-  document.getElementById("viewer").innerHTML=`${header}<form id="formularioCaja" class="glass rounded-2xl p-6 sm:p-8 space-y-6" novalidate onsubmit="event.preventDefault(); validarFormularioCaja('constanciasAcademicas');"><section><label class="field-label" for="tipoConstanciaCaja">Seleccione el tipo de constancia *</label><select id="tipoConstanciaCaja" name="tipoConstanciaCaja" class="field" required onchange="actualizarCamposConstanciaAcademica()"><option value="">Seleccione una constancia</option><option value="constanciaPromedio">Constancia de Promedio Ponderado Acumulado — S/ 10.00</option><option value="constanciaCreditos">Constancia de Número de Créditos Acumulados — S/ 10.00</option><option value="constanciaRendimientoFacultad">Constancia de Rendimiento Académico por Facultad — S/ 10.00</option><option value="constanciaRendimientoPromedio">Constancia de Rendimiento Académico y Promedio Ponderado — S/ 20.00</option></select></section><section class="border-t border-gray-200 pt-6"><h3 class="text-lg font-extrabold text-gray-900 mb-5">Datos del estudiante</h3><div class="grid sm:grid-cols-2 gap-5"><div><label class="field-label" for="cajaCodigo">Código de estudiante *</label><input id="cajaCodigo" name="codigo" class="field bg-gray-100 cursor-not-allowed" type="text" inputmode="numeric" maxlength="8" pattern="[0-9]{8}" required value="${atributoCodigoSesion()}" readonly aria-readonly="true"></div><div><label class="field-label" for="cajaCorreoInstitucional">Correo al que se enviará el ticket de solicitud</label><input id="cajaCorreoInstitucional" name="correoInstitucional" class="field bg-gray-100 cursor-not-allowed" type="email" readonly aria-readonly="true" placeholder="Se completará automáticamente con su código"><p class="helper">Se utilizará este correo institucional para enviar el ticket y las indicaciones para continuar con el proceso.</p></div><div class="sm:col-span-2"><label class="field-label" for="cajaNombre">Apellidos y nombres completos *</label><input id="cajaNombre" name="nombreCompleto" class="field uppercase" type="text" required placeholder="APELLIDOS Y NOMBRES" autocomplete="name"><p class="helper">Escriba sus datos en el orden indicado.</p></div><div class="sm:col-span-2"><label class="field-label" for="cajaCarrera">Carrera actual *</label><select id="cajaCarrera" name="carrera" class="field" required>${carreraOptions}</select></div></div></section><div id="camposEspecificosConstanciaAcademica"></div><section class="border-t border-gray-200 pt-6"><h3 class="text-lg font-extrabold text-gray-900 mb-4">Declaraciones obligatorias</h3><div class="space-y-3"><label class="flex items-start gap-3 rounded-xl border border-gray-200 p-4 cursor-pointer"><input type="checkbox" name="declaracionConsentimiento" class="declaracionCaja mt-1 accent-red-600" required><span class="text-sm leading-relaxed text-gray-700">Declaro que todos los datos expresados en este documento constituyen mi consentimiento libre y voluntario.</span></label><label class="flex items-start gap-3 rounded-xl border border-gray-200 p-4 cursor-pointer"><input type="checkbox" name="declaracionFormulario" class="declaracionCaja mt-1 accent-red-600" required><span class="text-sm leading-relaxed text-gray-700">Declaro haber leído y completado conforme el presente formulario.</span></label></div></section><section class="border-t border-gray-200 pt-6 space-y-4"><button type="submit" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--esan-red)] hover:bg-[var(--esan-red-dark)] px-7 py-3.5 text-white font-bold shadow-lg"><i data-lucide="check-circle" class="w-5 h-5"></i>Validar solicitud</button><div id="estadoCaja" class="hidden rounded-xl border p-4 text-sm" aria-live="polite"></div></section></form></div>`;
+  document.getElementById("viewer").innerHTML=`${header}<form id="formularioCaja" class="glass rounded-2xl p-6 sm:p-8 space-y-6" novalidate onsubmit="event.preventDefault(); validarFormularioCaja('constanciasAcademicas');"><section><label class="field-label" for="tipoConstanciaCaja">Seleccione el tipo de constancia *</label><select id="tipoConstanciaCaja" name="tipoConstanciaCaja" class="field" required onchange="actualizarCamposConstanciaAcademica()"><option value="">Seleccione una constancia</option><option value="constanciaPromedio">Constancia de Promedio Ponderado Acumulado — S/ 10.00</option><option value="constanciaCreditos">Constancia de Número de Créditos Acumulados — S/ 10.00</option><option value="constanciaRendimientoFacultad">Constancia de Rendimiento Académico por Facultad — S/ 10.00</option><option value="constanciaRendimientoPromedio">Constancia de Rendimiento Académico y Promedio Ponderado — S/ 20.00</option></select></section><section class="border-t border-gray-200 pt-6"><h3 class="text-lg font-extrabold text-gray-900 mb-5">Datos del estudiante</h3><div class="grid sm:grid-cols-2 gap-5"><div><label class="field-label" for="cajaCodigo">Código de estudiante *</label><input id="cajaCodigo" name="codigo" class="field bg-gray-100 cursor-not-allowed" type="text" inputmode="numeric" maxlength="8" pattern="[0-9]{8}" required value="${atributoCodigoSesion()}" readonly aria-readonly="true"></div><div><label class="field-label" for="cajaCorreoInstitucional">Correo al que se enviará el ticket de solicitud</label><input id="cajaCorreoInstitucional" name="correoInstitucional" class="field bg-gray-100 cursor-not-allowed" type="email" readonly aria-readonly="true" placeholder="Se completará automáticamente con su código"></div><div class="sm:col-span-2"><label class="field-label" for="cajaNombre">Apellidos y nombres completos *</label><input id="cajaNombre" name="nombreCompleto" class="field uppercase" type="text" required placeholder="APELLIDOS Y NOMBRES" autocomplete="name"><p class="helper">Escriba sus datos en el orden indicado.</p></div><div class="sm:col-span-2"><label class="field-label" for="cajaCarrera">Carrera actual *</label><select id="cajaCarrera" name="carrera" class="field" required>${carreraOptions}</select></div></div></section><div id="camposEspecificosConstanciaAcademica"></div><section class="border-t border-gray-200 pt-6"><h3 class="text-lg font-extrabold text-gray-900 mb-4">Declaraciones obligatorias</h3><div class="space-y-3"><label class="flex items-start gap-3 rounded-xl border border-gray-200 p-4 cursor-pointer"><input type="checkbox" name="declaracionConsentimiento" class="declaracionCaja mt-1 accent-red-600" required><span class="text-sm leading-relaxed text-gray-700">Declaro que todos los datos expresados en este documento constituyen mi consentimiento libre y voluntario.</span></label><label class="flex items-start gap-3 rounded-xl border border-gray-200 p-4 cursor-pointer"><input type="checkbox" name="declaracionFormulario" class="declaracionCaja mt-1 accent-red-600" required><span class="text-sm leading-relaxed text-gray-700">Declaro haber leído y completado conforme el presente formulario.</span></label></div></section><section class="border-t border-gray-200 pt-6 space-y-4"><button type="submit" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--esan-red)] hover:bg-[var(--esan-red-dark)] px-7 py-3.5 text-white font-bold shadow-lg"><i data-lucide="check-circle" class="w-5 h-5"></i>Solicitar constancias académicas</button><p class="helper">Una vez enviada, recibirás el ticket y las indicaciones para continuar con el trámite en tu correo institucional.</p><div id="estadoCaja" class="hidden rounded-xl border p-4 text-sm" aria-live="polite"></div></section></form></div>`;
   document.getElementById("topTitle").textContent=tramite.nombre;actualizarMenuActivo(tramite.key);toggleMenu(false);
   const code=document.getElementById("cajaCodigo");if(code){code.value=obtenerCodigoSesion();code.readOnly=true;code.classList.add("bg-gray-100","cursor-not-allowed");}
   const email=document.getElementById("cajaCorreoInstitucional");if(email)email.value=code?.value.trim()?`${code.value.trim()}@ue.edu.pe`:"";
@@ -1975,6 +2074,16 @@ const CURSOS_SILABOS = ["ADMINISTRACIÓN DE RETRIBUCIONES Y COMPENSACIONES","ADM
 function renderFormularioCaja(tramite){
   const key=tramite.key;
   if(key==="constanciasAcademicas"){renderFormularioConstanciasAcademicas(tramite);return;}
+  const textoBotonSolicitud = ({
+    examenRezagados: "Solicitar examen de rezagados",
+    emisionSilabos: "Solicitar emisión de sílabos",
+    constanciaConducta: "Solicitar constancia de conducta",
+    constanciaPrimeraMatricula: "Solicitar constancia de primera matrícula",
+    constanciaPromedio: "Solicitar constancia académica",
+    constanciaCreditos: "Solicitar constancia académica",
+    constanciaRendimientoFacultad: "Solicitar constancia académica",
+    constanciaRendimientoPromedio: "Solicitar constancia académica"
+  })[key] || "Validar solicitud";
   const carreraOptions=opcionesCarrerasHTML();
   const cicloOptions=Array.from({length:(2026-2003)*2+2},(_,i)=>{
     const year=2003+Math.floor(i/2), sem=(i%2)+1; return `${year}-${sem}`;
@@ -1989,8 +2098,8 @@ function renderFormularioCaja(tramite){
   // CICLO (POR EJEMPLO: value="2027-1"). NO CAMBIE EL id NI EL name.
   // =====================================================================
   const student=key==="examenRezagados"?`<section><h3 class="text-lg font-extrabold text-gray-900 mb-5">DATOS DEL ESTUDIANTE</h3><div class="grid sm:grid-cols-2 gap-5"><div><label class="field-label" for="cajaCodigo">CÓDIGO DE ESTUDIANTE</label><!-- Código heredado de la sesión. No se pide de nuevo ni se permite editarlo aquí. -->
-<input id="cajaCodigo" name="codigoEstudiante" class="field bg-gray-100 cursor-not-allowed" type="text" inputmode="numeric" maxlength="8" required value="${atributoCodigoSesion()}" readonly aria-readonly="true"></div><div><label class="field-label" for="cajaCorreo">CORREO INSTITUCIONAL</label><input id="cajaCorreo" name="correoInstitucional" class="field bg-gray-100 cursor-not-allowed" type="email" required value="${atributoCodigoSesion()}@ue.edu.pe" readonly aria-readonly="true"><p class="helper">EL TICKET Y LAS INDICACIONES SE ENVIARÁN A ESTE CORREO.</p></div><div><label class="field-label" for="cajaNombre">APELLIDOS Y NOMBRES COMPLETOS</label><input id="cajaNombre" name="apellidosNombres" class="field uppercase" type="text" required placeholder="APELLIDOS Y NOMBRES" autocomplete="name"></div><div><label class="field-label" for="cajaCiclo">CICLO INSCRITO</label><!-- CAMBIAR EL VALUE DE ESTE CAMPO AL INICIAR EL SIGUIENTE CICLO ACADÉMICO. --> <input id="cajaCiclo" name="cicloAcademico" class="field bg-gray-100 cursor-not-allowed" type="text" value="2026-2" readonly aria-readonly="true" required><p class="helper">CICLO PREDEFINIDO. NO LO MODIFIQUE.</p></div><div class="sm:col-span-2"><label class="field-label" for="cajaCarrera">CARRERA ACTUAL</label><select id="cajaCarrera" name="carreraActual" class="field" required>${carreraOptions}</select></div></div></section>`:`<section><h3 class="text-lg font-extrabold text-gray-900 mb-5">DATOS DEL ESTUDIANTE</h3><div class="grid sm:grid-cols-2 gap-5"><div><label class="field-label" for="cajaCodigo">CÓDIGO DE ESTUDIANTE</label><!-- Código heredado de la sesión. No se pide de nuevo ni se permite editarlo aquí. -->
-<input id="cajaCodigo" name="codigoEstudiante" class="field bg-gray-100 cursor-not-allowed" type="text" inputmode="numeric" maxlength="8" required value="${atributoCodigoSesion()}" readonly aria-readonly="true"></div><div><label class="field-label" for="cajaCorreo">CORREO INSTITUCIONAL</label><input id="cajaCorreo" name="correoInstitucional" class="field bg-gray-100 cursor-not-allowed" type="email" required value="${atributoCodigoSesion()}@ue.edu.pe" readonly aria-readonly="true"><p class="helper">EL TICKET Y LAS INDICACIONES SE ENVIARÁN A ESTE CORREO.</p></div><div><label class="field-label" for="cajaNombre">APELLIDOS Y NOMBRES COMPLETOS</label><input id="cajaNombre" name="apellidosNombres" class="field uppercase" type="text" required placeholder="APELLIDOS Y NOMBRES" autocomplete="name"></div><div class="sm:col-span-2"><label class="field-label" for="cajaCarrera">CARRERA ACTUAL</label><select id="cajaCarrera" name="carreraActual" class="field" required>${carreraOptions}</select></div></div></section>`;
+<input id="cajaCodigo" name="codigoEstudiante" class="field bg-gray-100 cursor-not-allowed" type="text" inputmode="numeric" maxlength="8" required value="${atributoCodigoSesion()}" readonly aria-readonly="true"></div><div><label class="field-label" for="cajaCorreo">CORREO INSTITUCIONAL</label><input id="cajaCorreo" name="correoInstitucional" class="field bg-gray-100 cursor-not-allowed" type="email" required value="${atributoCodigoSesion()}@ue.edu.pe" readonly aria-readonly="true"></div><div><label class="field-label" for="cajaNombre">APELLIDOS Y NOMBRES COMPLETOS</label><input id="cajaNombre" name="apellidosNombres" class="field uppercase" type="text" required placeholder="APELLIDOS Y NOMBRES" autocomplete="name"></div><div><label class="field-label" for="cajaCiclo">CICLO INSCRITO</label><!-- CAMBIAR EL VALUE DE ESTE CAMPO AL INICIAR EL SIGUIENTE CICLO ACADÉMICO. --> <input id="cajaCiclo" name="cicloAcademico" class="field bg-gray-100 cursor-not-allowed" type="text" value="2026-2" readonly aria-readonly="true" required></div><div class="sm:col-span-2"><label class="field-label" for="cajaCarrera">CARRERA ACTUAL</label><select id="cajaCarrera" name="carreraActual" class="field" required>${carreraOptions}</select></div></div></section>`:`<section><h3 class="text-lg font-extrabold text-gray-900 mb-5">DATOS DEL ESTUDIANTE</h3><div class="grid sm:grid-cols-2 gap-5"><div><label class="field-label" for="cajaCodigo">CÓDIGO DE ESTUDIANTE</label><!-- Código heredado de la sesión. No se pide de nuevo ni se permite editarlo aquí. -->
+<input id="cajaCodigo" name="codigoEstudiante" class="field bg-gray-100 cursor-not-allowed" type="text" inputmode="numeric" maxlength="8" required value="${atributoCodigoSesion()}" readonly aria-readonly="true"></div><div><label class="field-label" for="cajaCorreo">CORREO INSTITUCIONAL</label><input id="cajaCorreo" name="correoInstitucional" class="field bg-gray-100 cursor-not-allowed" type="email" required value="${atributoCodigoSesion()}@ue.edu.pe" readonly aria-readonly="true"></div><div><label class="field-label" for="cajaNombre">APELLIDOS Y NOMBRES COMPLETOS</label><input id="cajaNombre" name="apellidosNombres" class="field uppercase" type="text" required placeholder="APELLIDOS Y NOMBRES" autocomplete="name"></div><div class="sm:col-span-2"><label class="field-label" for="cajaCarrera">CARRERA ACTUAL</label><select id="cajaCarrera" name="carreraActual" class="field" required>${carreraOptions}</select></div></div></section>`;
   let fields="", declarations="", extraInfo="", introInfo="", fixedCost=null;
 
   // CAJA — SOLICITUD DE EXAMEN DE REZAGADOS
@@ -2002,7 +2111,7 @@ function renderFormularioCaja(tramite){
       <p>Estimado(a) estudiante:</p>
       <p>Para solicitar una evaluación de rezagados, complete el presente formulario y adjunte el formato de solicitud correspondiente a cada curso.</p>
       <p>Puede registrar uno o varios cursos en un solo formulario. Seleccione <strong>AGREGAR OTRO CURSO</strong> para incluir evaluaciones adicionales.</p>
-      <p>Las fechas programadas para rendir las evaluaciones de rezagados son el <strong>07 y el 10 de diciembre</strong>, en modalidad <strong>PRESENCIAL</strong>, de conformidad con el Calendario Académico. <a class="underline font-semibold" target="_blank" rel="noopener" href="https://uevirtual.ue.edu.pe/intranet/index.php/servicios-academicos/informacion-academica/calendario-academico">CONSULTAR CALENDARIO ACADÉMICO</a>.</p>
+      <p>Las fechas programadas para rendir las evaluaciones de rezagados son el <strong>7 y 10 de diciembre</strong>, en modalidad presencial, de conformidad con el calendario académico, que podrá consultar ingresando a la <a class="underline font-semibold" target="_blank" rel="noopener" href="https://uevirtual.ue.edu.pe/intranet/index.php/servicios-academicos/informacion-academica/calendario-academico">plataforma virtual</a>.</p>
       <p>Los alumnos podrán solicitar la recuperación de cualquier evaluación que no hayan rendido, con excepción de la presentación de trabajos u otro tipo de evaluación que no tenga características de examen. Solo se permite recuperar una nota.</p>
       <p><strong>Artículo 83°:</strong> “Solamente en casos excepcionales, el alumno que no rindió alguna evaluación y que haya justificado debidamente su inasistencia, podrá rendir una evaluación de rezagados para reemplazar la nota faltante. Los alumnos que por razones de excepción debidamente comprobadas sean autorizados a rendir la evaluación de rezagados lo harán en la fecha y realizando el pago correspondiente según las condiciones que se establezcan.”</p>
       <p>Para realizar el trámite, deberá contar con la documentación sustentatoria que justifique su solicitud. El resultado de la solicitud (procedente o improcedente) y el horario, para los alumnos autorizados, se comunicarán hasta un día antes de la evaluación mediante el correo institucional y se publicarán en UE Virtual.</p>
@@ -2025,10 +2134,10 @@ function renderFormularioCaja(tramite){
   // CAJA — SOLICITUD DE EMISIÓN DE SÍLABOS
   } else if(key==="emisionSilabos"){
     fixedCost=null;
-    introInfo=`<div class="rounded-xl border border-blue-200 bg-blue-50 p-4 sm:p-5 text-sm text-blue-950 mb-6 space-y-3"><p class="font-bold">ANTES DE SOLICITAR LOS SÍLABOS, DEBERÁ TENER EN CUENTA LOS SIGUIENTES PUNTOS:</p><p>Las constancias se emitirán en formato digital. Puede ver el modelo en el siguiente enlace: <a class="underline text-[var(--esan-red)] font-semibold" href="https://drive.google.com/file/d/1hMeVP_5YoQM3kbEW9xLLttJGMe0c2ruH/view?usp=drive_link" target="_blank" rel="noopener">VER MODELO</a>.</p><ol class="list-decimal pl-5 space-y-2"><li>No debe presentar ninguna deuda pendiente con la Universidad. De lo contrario, deberá regularizar su situación financiera con el área de Finanzas a través del correo: <a class="underline font-semibold" href="mailto:finanzaspregrado@ue.edu.pe">finanzaspregrado@ue.edu.pe</a>.</li><li>El costo por cada sílabo es de S/ 10.00 soles.</li><li>Solo puede solicitar sílabos de cursos aprobados (no convalidados ni desaprobados).</li><li>El plazo máximo para la emisión de la constancia es de 7 días hábiles (no sábados, domingos y feriados), contados a partir del día siguiente del envío del comprobante de pago.</li><li>Por medidas de seguridad, la constancia se enviará únicamente al correo institucional y al correo personal registrado en nuestra base de datos. En caso requiera actualizar su correo personal, deberá detallar la nueva dirección de e-mail y enviarnos la foto de su DNI para validar su identidad y proceder con el cambio solicitado.</li></ol><p>Su histórico de notas lo podrá visualizar en su portal académico (en él se encuentra su registro de cursos). Si no puede visualizarlo, puede solicitarlo a través del correo: <a class="underline font-semibold" href="mailto:ssacad@ue.edu.pe">ssacad@ue.edu.pe</a>.</p></div>`;
+    introInfo=`<div class="rounded-xl border border-blue-200 bg-blue-50 p-4 sm:p-5 text-sm text-blue-950 mb-6 space-y-3"><p class="font-bold">ANTES DE SOLICITAR LOS SÍLABOS, DEBERÁ TENER EN CUENTA LOS SIGUIENTES PUNTOS:</p><p>Las constancias se emitirán en formato digital. Puede ver el modelo en el siguiente enlace: <a class="underline text-[var(--esan-red)] font-semibold" href="https://drive.google.com/file/d/1hMeVP_5YoQM3kbEW9xLLttJGMe0c2ruH/view?usp=drive_link" target="_blank" rel="noopener">VER MODELO</a>.</p><ol class="list-decimal pl-5 space-y-2"><li>No debe presentar ninguna deuda pendiente con la Universidad. De lo contrario, deberá regularizar su situación financiera con el área de Finanzas a través del correo: <a class="underline font-semibold" href="mailto:finanzaspregrado@ue.edu.pe">finanzaspregrado@ue.edu.pe</a>.</li><li>El costo por cada sílabo es de S/ 10.00 soles.</li><li>Solo puede solicitar sílabos de cursos aprobados (no convalidados ni desaprobados).</li><li>El plazo máximo para la emisión de la constancia es de 7 días hábiles (no sábados, domingos y feriados), contados a partir del día siguiente del envío del comprobante de pago.</li><li>Por medidas de seguridad, la constancia se enviará únicamente al correo institucional y al correo personal registrado en nuestra base de datos. En caso requiera actualizar su correo personal, deberá detallar la nueva dirección de e-mail y enviarnos la foto de su DNI para validar su identidad y proceder con el cambio solicitado.</li></ol></div>`;
     fields=`<section class="border-t border-gray-200 pt-6 space-y-6"><div><label class="field-label" for="motivoSilabo">MOTIVO DE LA SOLICITUD *</label><select id="motivoSilabo" name="motivoSolicitud" class="field" required><option value="">SELECCIONE UN MOTIVO</option><option value="TRABAJO">TRABAJO</option><option value="ESTUDIOS">ESTUDIOS</option><option value="PERSONALES">PERSONALES</option></select></div><div><label class="field-label" for="cantidadSilabos">CANTIDAD DE SÍLABOS SOLICITADOS *</label><input id="cantidadSilabos" name="cantidadSilabos" class="field" type="number" min="1" max="${CURSOS_SILABOS.length}" step="1" required value="1" oninput="actualizarCamposCursosSilabos();actualizarCostoSilabos()"><p class="helper">EL COSTO ES DE S/ 10.00 POR CADA SÍLABO. SE MOSTRARÁ UN DESPLEGABLE POR CADA SÍLABO SOLICITADO.</p></div><div><h3 class="font-extrabold text-gray-900 mb-3">CURSO(S) SOLICITADO(S) *</h3><div id="nombresSilabos" class="space-y-4"></div></div><div class="rounded-xl bg-gray-50 border border-gray-200 p-4 flex items-center justify-between"><span class="font-bold text-gray-700">COSTO TOTAL ESTIMADO</span><strong id="costoSilabos" class="text-xl text-[var(--esan-red)]">S/ 10.00</strong></div><div class="format-upload-card rounded-xl border border-gray-200 p-4"><p class="font-bold text-gray-900 mb-3">DEBERÁ DESCARGAR Y ADJUNTAR EL SIGUIENTE DOCUMENTO:</p><p class="mb-4"><a class="inline-flex items-center gap-2 rounded-xl bg-[var(--esan-red)] hover:bg-[var(--esan-red-dark)] px-4 py-3 text-white font-bold" target="_blank" rel="noopener" href="https://uevirtual.ue.edu.pe/intranet/images/01-ServAcademico/Tramites-Academicos/SOLICITUD_DE_EMISI%C3%93N_DE_S%C3%8DLABOS.docx"><i data-lucide="download" class="w-4 h-4"></i>DESCARGAR FORMATO DE SOLICITUD</a></p><label class="field-label" for="formatoSilabos">ADJUNTAR SOLICITUD DE EMISIÓN DE SÍLABOS *</label><input id="formatoSilabos" name="formatoSilabos" class="field" type="file" accept=".pdf" required><p class="helper mt-2">FORMATO PERMITIDO: PDF.</p></div></section>`;
     declarations=`<label class="flex items-start gap-3 rounded-xl border border-gray-200 p-4 cursor-pointer"><input type="checkbox" name="declaracionEmisionSilabos" class="declaracionCaja mt-1 accent-red-600" required><span class="text-sm text-gray-700">Declaro haber leído y completado conforme la solicitud de emisión de sílabos.</span></label>`;
-    extraInfo=`<div class="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700"><p class="font-bold">CUENTAS BANCARIAS PARA EL PAGO</p><p class="mt-2"><strong>BCP Fideicomiso ESAN:</strong> SV REC191-7292029-0-56. CCI: 002-191-007292029056-55 (soles).</p><p class="mt-2"><strong>BBVA Fideicomiso ESAN:</strong> SV REC0011-0371-01-00002688. CCI: 01137100010000268828 (soles).</p><p class="mt-2">La constancia o el sílabo se enviará al correo institucional y al correo personal registrado. Para actualizar el correo personal se requerirá la nueva dirección y una foto del DNI para validar la identidad.</p></div>`;
+    extraInfo=``;
   // CAJA — CONSTANCIA DE CONDUCTA
   } else if(key==="constanciaConducta"){
     fixedCost=30;
@@ -2052,7 +2161,7 @@ function renderFormularioCaja(tramite){
     extraInfo=`<div class="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700"><p class="font-bold">Cuentas bancarias para el pago</p><p class="mt-2"><strong>BCP Fideicomiso ESAN:</strong> SV REC191-7292029-0-56. CCI: 002-191-007292029056-55 (soles).</p><p class="mt-2"><strong>BBVA Fideicomiso ESAN:</strong> SV REC0011-0371-01-00002688. CCI: 01137100010000268828 (soles).</p></div><!-- BORRADOR NO VISIBLE: aviso original sobre solicitudes de rendimiento académico del ciclo 2026-1 a partir del 24 de agosto de 2026. Se conserva aquí para futura actualización. -->`;
   }
 
-  document.getElementById("viewer").innerHTML=`${header}${introInfo}<form id="formularioCaja" class="glass rounded-2xl p-6 sm:p-8 space-y-7" novalidate onsubmit="event.preventDefault(); validarFormularioCaja('${key}');">${student}${fields}${declarations?`<section class="border-t border-gray-200 pt-6"><h3 class="text-lg font-extrabold text-gray-900 mb-4">Declaraciones</h3><div class="space-y-3">${declarations}</div></section>`:""}<section class="border-t border-gray-200 pt-6 space-y-4">${extraInfo}<button type="submit" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--esan-red)] hover:bg-[var(--esan-red-dark)] px-7 py-3.5 text-white font-bold shadow-lg"><i data-lucide="check-circle" class="w-5 h-5"></i>Validar solicitud</button><div id="estadoCaja" class="hidden rounded-xl border p-4 text-sm" aria-live="polite"></div></section></form></div>`;
+  document.getElementById("viewer").innerHTML=`${header}${introInfo}<form id="formularioCaja" class="glass rounded-2xl p-6 sm:p-8 space-y-7" novalidate onsubmit="event.preventDefault(); validarFormularioCaja('${key}');">${student}${fields}${declarations?`<section class="border-t border-gray-200 pt-6"><h3 class="text-lg font-extrabold text-gray-900 mb-4">Declaraciones</h3><div class="space-y-3">${declarations}</div></section>`:""}<section class="border-t border-gray-200 pt-6 space-y-4">${extraInfo}<button type="submit" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--esan-red)] hover:bg-[var(--esan-red-dark)] px-7 py-3.5 text-white font-bold shadow-lg"><i data-lucide="check-circle" class="w-5 h-5"></i>${textoBotonSolicitud}</button><p class="helper">Una vez enviada, recibirás el ticket y las indicaciones para continuar con el trámite en tu correo institucional.</p><div id="estadoCaja" class="hidden rounded-xl border p-4 text-sm" aria-live="polite"></div></section></form></div>`;
   document.getElementById("topTitle").textContent=tramite.nombre;
   actualizarMenuActivo(key); toggleMenu(false);
   // El código de Caja viene de la sesión y el campo está en solo lectura.
@@ -2073,7 +2182,7 @@ const DOCENTES_REZAGADOS = ["AGUILAR LAGOS GARY ANTONIO","AGUILERA SERPA CESAR A
 function crearBloqueExamenRezagado(n){
   const motivos=["ACCIDENTE","CITA EN EMBAJADA","FAMILIAR","LABORAL","PERSONAL","PROBLEMAS TÉCNICOS","ROBO","SALUD","VIAJE","OTRO"];
   const opcionesCursos=CURSOS_SILABOS.map(c=>`<option value="${escaparHTML(c)}">${escaparHTML(c)}</option>`).join("");
-  const opcionesDocentes=DOCENTES_REZAGADOS.map(d=>`<option value="${escaparHTML(d)}">${escaparHTML(d)}</option>`).join("");
+  const opcionesDocentes=DOCENTES_REZAGADOS.map(d=>`<option value="${escaparHTML(d)}">${escaparHTML(d)}</option>`).join("")+`<option value="OTRO">OTRO</option>`;
   const opcionesSecciones=Array.from({length:32},(_,i)=>`<option value="S-${String(i+1).padStart(3,"0")}">S-${String(i+1).padStart(3,"0")}</option>`).join("");
   return `<div class="bloqueExamen rounded-xl border border-gray-200 p-5" data-examen="${n}">
     <div class="flex items-center justify-between mb-4"><h4 class="font-extrabold text-gray-900">CURSO ${n}</h4>${n>1?`<button type="button" class="text-sm font-bold text-red-600 hover:underline" onclick="this.closest('.bloqueExamen').remove();renumerarBloquesExamen();">ELIMINAR CURSO</button>`:""}</div>
@@ -2724,9 +2833,11 @@ function actualizarOpcionesCiclosReserva(){
   }
 
   if(!ciclosDisponibles.length){
-    opciones.innerHTML = '<p class="text-sm text-gray-700 sm:col-span-2">No hay ciclos que debas marcar como reserva pagada.</p>';
+    opciones.innerHTML = !ciclosIntermedios.length
+      ? '<p class="text-sm text-gray-700 sm:col-span-2">No necesitas realizar un trámite de reserva ni reincorporación, ya que no hay ciclos regulares sin estudiar entre los periodos seleccionados.</p>'
+      : '<p class="text-sm text-gray-700 sm:col-span-2">No hay ciclos que debas marcar como reserva pagada.</p>';
     mensaje.textContent = !ciclosIntermedios.length
-      ? "No hay ciclos entre el último ciclo estudiado y el ciclo de retorno."
+      ? ""
       : "Los dos primeros ciclos posteriores al último ciclo estudiado ya están excluidos automáticamente del conteo y pago, por lo que no necesitas seleccionarlos.";
     return;
   }
@@ -2738,7 +2849,7 @@ function actualizarOpcionesCiclosReserva(){
     </label>
   `).join("");
   actualizarDisponibilidadCiclosReserva();
-  mensaje.textContent = "Solo puedes marcar los dos primeros ciclos posteriores a tu último ciclo estudiado que estén antes del retorno. Los periodos excluidos automáticamente no aparecerán. Si marcas dos, deben ser consecutivos.";
+  mensaje.textContent = "Solo puedes marcar los dos primeros ciclos posteriores a tu último ciclo estudiado.";
 }
 
 function calcularMonto(ciclosParaPago){
@@ -3008,13 +3119,13 @@ function actualizarVistaPreviaRetorno(){
     <p>El costo por concepto de Reserva de Matrícula es de S/ 300.00 por un máximo de dos (2) semestres académicos. El monto total a cancelar dependerá de cuántos ciclos regulares dejó de estudiar.</p>`;
 
   descripcion.innerHTML = sinSuspension
-    ? `<p class="font-extrabold text-base text-gray-900">CONTINUIDAD DE ESTUDIOS</p><p>NO SE IDENTIFICAN CICLOS REGULARES SIN ESTUDIAR ENTRE LOS PERIODOS SELECCIONADOS. VERIFICA TU PERIODO DE MATRÍCULA CON SERVICIOS ACADÉMICOS.</p>`
+    ? `<p class="font-extrabold text-base text-gray-900">Continuidad de estudios</p><p>No se identifican ciclos regulares sin estudiar entre los periodos seleccionados, por lo que no necesitas realizar un trámite de reserva ni reincorporación. Si tienes dudas, verifica tu periodo de matrícula con Servicios Académicos.</p>`
     : esReserva ? descripcionReserva : descripcionReincorporacion;
 
   const tipoDocumento = sinSuspension ? "retorno" : esReserva ? "reserva" : "reincorporacion";
   if(documentos.dataset.tramiteTipo !== tipoDocumento){
     if(sinSuspension){
-      documentos.innerHTML = '<p class="font-bold text-gray-800">NO SE REQUIERE FORMATO DE RESERVA NI DE REINCORPORACIÓN PARA LOS CICLOS SELECCIONADOS.</p>';
+      documentos.innerHTML = '<p class="font-bold text-gray-800">No se requiere formato de reserva ni de reincorporación para los ciclos seleccionados.</p>';
       documentos.dataset.tramiteTipo = tipoDocumento;
       return;
     }
@@ -3593,15 +3704,10 @@ actualizarIconos();
 
 const inputCodigoEstudiante=document.getElementById("loginCodigo");
 inputCodigoEstudiante?.addEventListener("input",()=>{
-  inputCodigoEstudiante.value=inputCodigoEstudiante.value.replace(/\D/g,"").slice(0,8);
+  inputCodigoEstudiante.value=inputCodigoEstudiante.value.replace(/\\D/g,"").slice(0,8);
   const codigoActual=inputCodigoEstudiante.value;
   if(codigoEstudianteActivo && codigoEstudianteActivo!==codigoActual){
-    codigoEstudianteActivo="";
-    const otp=document.getElementById("codigoVerificacion");
-    if(otp) otp.value="";
-    document.getElementById("codigoVerificacionContenedor")?.classList.add("hidden");
-    document.getElementById("btnConfirmarCodigo")?.classList.add("hidden");
-    document.getElementById("loginEstado")?.classList.add("hidden");
+    reiniciarPasoVerificacion();
   }
   actualizarCorreoInstitucionalVista();
 });
