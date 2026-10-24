@@ -1318,7 +1318,7 @@ async function solicitarCodigoAcceso(reenviar=false){
   const codigo=String(input?.value||"").trim();
   const error=document.getElementById("loginCodigoError");
   if(error) error.classList.add("hidden");
-  if(!/^\\d{8}$/.test(codigo)){
+  if(!/^\d{8}$/.test(codigo)){
     if(error){error.textContent="Ingresa un código de estudiante de exactamente 8 dígitos.";error.classList.remove("hidden");}
     input?.classList.add("field-error");
     return;
