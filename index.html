@@ -481,8 +481,8 @@
 
    AHORA:
    - "Último ciclo matriculado": desde 2003-1 hasta 2026-1
-   - "Ciclo de retorno": aparece inicialmente en 2027-1
-   - Último ciclo disponible para retorno: 2050-1
+   - "Ciclo de retorno": fijo en 2027-1 (campo de solo lectura)
+   - "Último ciclo de estudios": desplegable hasta 2026-2
 
    PARA CAMBIAR LOS RANGOS EN EL FUTURO:
    modifica ULTIMO_CICLO_INICIAL, CICLO_RETORNO_INICIAL
@@ -504,18 +504,19 @@
 ====================================================================
 >>>>>>>>>>>> AQUI CAMBIAR EL CICLO DE RETORNO <<<<<<<<<<<<<<<<<<<<<
 ====================================================================
-PARA CAMBIAR EL PERIODO DE RETORNO PREDETERMINADO, MODIFICA
+EL CICLO DE RETORNO SE MUESTRA COMO UN CAMPO FIJO DE SOLO LECTURA.
+PARA ACTUALIZARLO CUANDO ABRAS EL SIGUIENTE PERIODO, MODIFICA
 CICLO_RETORNO_INICIAL. AHORA ESTÁ CONFIGURADO COMO "2027-1".
 
 ULTIMO_CICLO_FINAL DEFINE HASTA QUÉ CICLO PUEDE INDICAR EL ESTUDIANTE
-COMO SU ÚLTIMO CICLO MATRICULADO. AHORA ESTÁ EN "2026-1".
+COMO SU ÚLTIMO CICLO MATRICULADO. AHORA ESTÁ EN "2026-2".
 
 CUANDO ABRAS UN NUEVO PERIODO, ACTUALIZA AMBOS VALORES SI CORRESPONDE.
 EJEMPLO: SI EL RETORNO PASA A "2027-2", REVISA SI ULTIMO_CICLO_FINAL
 DEBE CAMBIAR A "2026-2".
 
-SI NECESITAS AMPLIAR LOS PERIODOS DE RETORNO DEL DESPLEGABLE,
-MODIFICA TAMBIÉN CICLO_FINAL MÁS ABAJO.
+CICLO_FINAL SE CONSERVA PARA LAS FUNCIONES QUE GENERAN LISTAS DE CICLOS.
+EL CICLO DE RETORNO YA NO USA UN DESPLEGABLE.
 NO CAMBIES LOS NOMBRES DE LAS CONSTANTES NI LAS COMILLAS.
 ====================================================================
 */
@@ -524,7 +525,7 @@ const ULTIMO_CICLO_INICIAL = "2003-1";
 // ÚLTIMO CICLO QUE EL ESTUDIANTE PODRÁ ELEGIR COMO SU CICLO MATRICULADO
 const ULTIMO_CICLO_FINAL = "2026-2";
 
-// >>> AQUI CAMBIAR EL CICLO DE RETORNO CUANDO SE ABRA EL SIGUIENTE PERIODO <<<
+// >>> AQUI CAMBIAR EL CICLO DE RETORNO FIJO CUANDO SE ABRA EL SIGUIENTE PERIODO <<<
 const CICLO_RETORNO_INICIAL = "2027-1";
 
 // ÚLTIMO CICLO DISPONIBLE EN LOS DESPLEGABLES
@@ -937,9 +938,8 @@ const db = {
 
                   <div>
                     <label class="field-label" for="cicloRetorno">CICLO EN EL QUE DESEAS RETOMAR TUS ESTUDIOS</label>
-                    <select id="cicloRetorno" name="cicloRetorno" class="field">
-                      <option value="">SELECCIONE UN CICLO</option>
-                    </select>
+                    <!-- El ciclo de retorno se fija desde la constante CICLO_RETORNO_INICIAL. -->
+                    <input id="cicloRetorno" name="cicloRetorno" class="field bg-gray-100 cursor-not-allowed" type="text" value="${CICLO_RETORNO_INICIAL}" readonly aria-readonly="true" required>
                     <p class="helper">
                       No se considera como ciclo suspendido el semestre en el que retomas tus estudios.
                     </p>
@@ -1355,6 +1355,11 @@ db.soporte = {
   menu: "Soporte",
   html: `
     <div class="max-w-3xl mx-auto animate-[fadeIn_0.4s]">
+      <!-- Mantiene en Soporte el mismo acceso para volver al catálogo de trámites. -->
+      <button type="button" onclick="renderContent('home')" class="inline-flex items-center gap-2 text-sm font-bold text-[var(--esan-red)] hover:underline mb-5">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+        Volver a todos los trámites
+      </button>
       <section class="bg-white rounded-3xl border border-gray-200 shadow-sm p-7 sm:p-10">
 
         <div class="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center">
@@ -1635,13 +1640,14 @@ let ultimaSolicitudFormularioPreparada = null;
    ============================================================ */
 function generarOpcionesCiclosConstanciaAcademica(){
   const opciones=[];
+  // Solo ciclos regulares: semestre 1 y semestre 2. No se incluye verano (-0).
   for(let anio=2026;anio>=2003;anio--){
-    opciones.push(`<option value="${anio}-2">${anio}-2</option>`,`<option value="${anio}-1">${anio}-1</option>`,`<option value="${anio}-0">${anio}-0 (Verano)</option>`);
+    opciones.push(`<option value="${anio}-2">${anio}-2</option>`,`<option value="${anio}-1">${anio}-1</option>`);
   }
-  return `<option value="">Seleccione un ciclo académico</option>${opciones.join("")}`;
+  return `<option value="">SELECCIONE UN CICLO ACADÉMICO</option>${opciones.join("")}`;
 }
 function crearCampoCicloConstanciaAcademica(n){
-  return `<div class="cicloConstanciaItem rounded-xl border border-gray-200 p-4" data-ciclo-item="${n}"><div class="flex items-center justify-between gap-3 mb-3"><label class="field-label mb-0" for="cicloConstancia${n}">Ciclo académico de la constancia ${n} *</label>${n>1?`<button type="button" onclick="eliminarCicloConstanciaAcademica(this)" class="text-sm font-bold text-red-600 hover:underline">Eliminar</button>`:""}</div><select id="cicloConstancia${n}" name="cicloConstancia${n}" class="field" required>${generarOpcionesCiclosConstanciaAcademica()}</select></div>`;
+  return `<div class="cicloConstanciaItem rounded-xl border border-gray-200 p-4" data-ciclo-item="${n}"><div class="flex items-center justify-between gap-3 mb-3"><label class="field-label mb-0" for="cicloConstancia${n}">CICLO ACADÉMICO DE LA CONSTANCIA ${n} *</label>${n>1?`<button type="button" onclick="eliminarCicloConstanciaAcademica(this)" class="text-sm font-bold text-red-600 hover:underline">ELIMINAR</button>`:""}</div><select id="cicloConstancia${n}" name="cicloConstancia${n}" class="field" required>${generarOpcionesCiclosConstanciaAcademica()}</select></div>`;
 }
 function agregarCicloConstanciaAcademica(){
   const c=document.getElementById("ciclosConstanciaContainer");if(!c)return;
@@ -1651,10 +1657,10 @@ function eliminarCicloConstanciaAcademica(btn){
   const c=document.getElementById("ciclosConstanciaContainer");btn?.closest(".cicloConstanciaItem")?.remove();if(!c)return;
   [...c.querySelectorAll(".cicloConstanciaItem")].forEach((item,i)=>{
     const n=i+1,label=item.querySelector("label"),sel=item.querySelector("select"),oldBtn=item.querySelector("button");
-    item.dataset.cicloItem=String(n);if(label){label.htmlFor=`cicloConstancia${n}`;label.textContent=`Ciclo académico de la constancia ${n} *`;}
+    item.dataset.cicloItem=String(n);if(label){label.htmlFor=`cicloConstancia${n}`;label.textContent=`CICLO ACADÉMICO DE LA CONSTANCIA ${n} *`;}
     if(sel){sel.id=`cicloConstancia${n}`;sel.name=`cicloConstancia${n}`;}
     if(n===1&&oldBtn)oldBtn.remove();
-    if(n>1&&!oldBtn)item.querySelector(".flex")?.insertAdjacentHTML("beforeend",`<button type="button" onclick="eliminarCicloConstanciaAcademica(this)" class="text-sm font-bold text-red-600 hover:underline">Eliminar</button>`);
+    if(n>1&&!oldBtn)item.querySelector(".flex")?.insertAdjacentHTML("beforeend",`<button type="button" onclick="eliminarCicloConstanciaAcademica(this)" class="text-sm font-bold text-red-600 hover:underline">ELIMINAR</button>`);
   });actualizarCostoConstanciasAcademicas();
 }
 function actualizarCostoConstanciasAcademicas(){
@@ -1678,18 +1684,18 @@ function actualizarCamposConstanciaAcademica(){
   if(!tipo){fields.innerHTML="";return;}
   const tarifa=tipo==="constanciaRendimientoPromedio"?20:10;
   // Este select tiene una sola casilla «Otro», definida justo debajo; no usar el generador común.
-  const campoMotivo=`<div><label class="field-label" for="motivoConstanciaCaja">MOTIVO DE LA SOLICITUD *</label><select id="motivoConstanciaCaja" name="motivoConstanciaCaja" class="field" required onchange="alternarOtroMotivoConstanciaAcademica()"><option value="">Seleccione un motivo</option><option value="Estudios">Estudios</option><option value="Laborales">Laborales</option><option value="Otro">Otro</option></select><div id="otroMotivoConstanciaWrap" class="hidden mt-3"><label class="field-label" for="otroMotivoConstanciaCaja">ESPECIFIQUE EL MOTIVO *</label><input id="otroMotivoConstanciaCaja" name="otroMotivoConstanciaCaja" class="field" type="text" maxlength="500" placeholder="INDIQUE EL MOTIVO DE SU SOLICITUD"></div></div>`;
+  const campoMotivo=`<div><label class="field-label" for="motivoConstanciaCaja">MOTIVO DE LA SOLICITUD *</label><select id="motivoConstanciaCaja" name="motivoConstanciaCaja" class="field" required onchange="alternarOtroMotivoConstanciaAcademica()"><option value="">SELECCIONE UN MOTIVO</option><option value="Estudios">ESTUDIOS</option><option value="Laborales">LABORALES</option><option value="Otro">OTRO</option></select><div id="otroMotivoConstanciaWrap" class="hidden mt-3"><label class="field-label" for="otroMotivoConstanciaCaja">ESPECIFIQUE EL MOTIVO *</label><input id="otroMotivoConstanciaCaja" name="otroMotivoConstanciaCaja" class="field" type="text" maxlength="500" placeholder="INDIQUE EL MOTIVO DE SU SOLICITUD"></div></div>`;
   if(tipo==="constanciaPromedio"||tipo==="constanciaCreditos"){
-    fields.innerHTML=`<section class="border-t border-gray-200 pt-6 space-y-5">${campoMotivo}<div class="rounded-xl bg-gray-50 border border-gray-200 p-4 flex items-center justify-between"><span class="font-bold text-gray-700">Costo de la constancia</span><strong class="text-xl text-[var(--esan-red)]">S/ 10.00</strong></div></section>`;
+    fields.innerHTML=`<section class="border-t border-gray-200 pt-6 space-y-5">${campoMotivo}<div class="rounded-xl bg-gray-50 border border-gray-200 p-4 flex items-center justify-between"><span class="font-bold text-gray-700">COSTO DE LA CONSTANCIA</span><strong class="text-xl text-[var(--esan-red)]">S/ 10.00</strong></div></section>`;
   }else{
-    fields.innerHTML=`<section class="border-t border-gray-200 pt-6 space-y-5">${campoMotivo}<div><div class="flex flex-wrap items-center justify-between gap-3 mb-3"><label class="field-label mb-0">Ciclo(s) académico(s) solicitado(s) *</label><button type="button" onclick="agregarCicloConstanciaAcademica()" class="rounded-xl border border-[var(--esan-red)] px-4 py-2 text-sm font-bold text-[var(--esan-red)] hover:bg-red-50">+ Agregar otro ciclo</button></div><div id="ciclosConstanciaContainer" class="space-y-3">${crearCampoCicloConstanciaAcademica(1)}</div><p class="helper mt-2">Cada ciclo seleccionado corresponde a una constancia independiente.</p></div><div class="rounded-xl bg-gray-50 border border-gray-200 p-4 flex items-center justify-between"><div><span class="block font-bold text-gray-700">Costo estimado total</span><span id="tarifaConstanciaAcademica" class="helper">S/ ${tarifa.toFixed(2)} por constancia</span></div><strong id="costoTotalConstanciasAcademicas" class="text-xl text-[var(--esan-red)]">S/ ${tarifa.toFixed(2)}</strong></div></section>`;
+    fields.innerHTML=`<section class="border-t border-gray-200 pt-6 space-y-5">${campoMotivo}<div><div class="flex flex-wrap items-center justify-between gap-3 mb-3"><label class="field-label mb-0">CICLO(S) ACADÉMICO(S) SOLICITADO(S) *</label><button type="button" onclick="agregarCicloConstanciaAcademica()" class="rounded-xl border border-[var(--esan-red)] px-4 py-2 text-sm font-bold text-[var(--esan-red)] hover:bg-red-50">+ AGREGAR OTRO CICLO</button></div><div id="ciclosConstanciaContainer" class="space-y-3">${crearCampoCicloConstanciaAcademica(1)}</div><p class="helper mt-2">Cada ciclo seleccionado corresponde a una constancia independiente.</p></div><div class="rounded-xl bg-gray-50 border border-gray-200 p-4 flex items-center justify-between"><div><span class="block font-bold text-gray-700">COSTO ESTIMADO TOTAL</span><span id="tarifaConstanciaAcademica" class="helper">S/ ${tarifa.toFixed(2)} por constancia</span></div><strong id="costoTotalConstanciasAcademicas" class="text-xl text-[var(--esan-red)]">S/ ${tarifa.toFixed(2)}</strong></div></section>`;
   }
   actualizarCostoConstanciasAcademicas();
 }
 function renderFormularioConstanciasAcademicas(tramite){
   const carreraOptions=opcionesCarrerasHTML();
   const header=`<div class="max-w-4xl mx-auto animate-[fadeIn_0.3s]"><button type="button" onclick="renderContent('home')" class="inline-flex items-center gap-2 text-sm font-bold text-[var(--esan-red)] hover:underline mb-5"><i data-lucide="arrow-left" class="w-4 h-4"></i>Volver a todos los trámites</button><section class="glass rounded-2xl p-6 sm:p-8 border-l-4 border-[var(--esan-red)] mb-6"><div class="flex items-start gap-4"><div class="w-14 h-14 rounded-2xl bg-red-50 text-[var(--esan-red)] flex items-center justify-center shrink-0"><i data-lucide="${tramite.icono}" class="w-7 h-7"></i></div><div><p class="text-xs uppercase tracking-[.2em] text-[var(--esan-red)] font-bold">Formulario de solicitud</p><h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1">${tramite.nombre}</h2></div></div></section><div class="rounded-xl border border-blue-200 bg-blue-50 p-4 sm:p-5 text-sm text-blue-950 mb-6 space-y-3"><p>Estimado(a) estudiante:</p><p>Para solicitar la constancia de rendimiento académico, complete los datos solicitados en este formulario. Una vez enviada su solicitud, recibirá un ticket en su correo institucional para continuar con el proceso.</p><p class="font-bold">Importante</p><ul class="list-disc pl-5 space-y-1"><li>La constancia solo detallará la información de un ciclo, si requiere de otros ciclos adicionales se emitirá una constancia por cada ciclo solicitado. Considerar que el costo es por cada constancia emitida.</li><li>El plazo máximo para la emisión es de 7 días hábiles, contados a partir del envío del comprobante de pago.</li></ul><p class="font-bold">Antes de solicitar la constancia de rendimiento académico, deberá tener en cuenta los siguientes puntos:</p><ol class="list-decimal pl-5 space-y-1"><li>Las constancias de rendimiento académico se emiten en formato digital.</li><li>Deberá revisar los modelos de constancias a través del siguiente enlace: <a class="underline text-[var(--esan-red)] font-semibold" target="_blank" rel="noopener" href="https://uevirtual.ue.edu.pe/intranet/images/01-ServAcademico/Tramites-Academicos/MODELOS_DE_CONSTANCIAS_DE_RENDIMIENTO_ACADEMICO.pdf">Ver modelos de constancias</a>.</li><li>Por medidas de seguridad, la constancia se enviará únicamente al correo institucional y al correo personal registrado en nuestra base de datos. En caso requiera actualizar su correo personal, deberá detallar la nueva dirección de e-mail y enviarnos la foto de su DNI para validar su identidad y proceder con el cambio solicitado.</li></ol></div>`;
-  document.getElementById("viewer").innerHTML=`${header}<form id="formularioCaja" class="glass rounded-2xl p-6 sm:p-8 space-y-6" novalidate onsubmit="event.preventDefault(); validarFormularioCaja('constanciasAcademicas');"><section><label class="field-label" for="tipoConstanciaCaja">Seleccione el tipo de constancia *</label><select id="tipoConstanciaCaja" name="tipoConstanciaCaja" class="field" required onchange="actualizarCamposConstanciaAcademica()"><option value="">Seleccione una constancia</option><option value="constanciaPromedio">Constancia de Promedio Ponderado Acumulado — S/ 10.00</option><option value="constanciaCreditos">Constancia de Número de Créditos Acumulados — S/ 10.00</option><option value="constanciaRendimientoFacultad">Constancia de Rendimiento Académico por Facultad — S/ 10.00</option><option value="constanciaRendimientoPromedio">Constancia de Rendimiento Académico y Promedio Ponderado — S/ 20.00</option></select></section><section class="border-t border-gray-200 pt-6"><h3 class="text-lg font-extrabold text-gray-900 mb-5">DATOS DEL ESTUDIANTE</h3><div class="grid sm:grid-cols-2 gap-5"><div><label class="field-label" for="cajaCodigo">Código de estudiante *</label><input id="cajaCodigo" name="codigo" class="field bg-gray-100 cursor-not-allowed" type="text" inputmode="numeric" maxlength="8" pattern="[0-9]{8}" required value="${atributoCodigoSesion()}" readonly aria-readonly="true"></div><div><label class="field-label" for="cajaCorreoInstitucional">Correo al que se enviará el ticket de solicitud</label><input id="cajaCorreoInstitucional" name="correoInstitucional" class="field bg-gray-100 cursor-not-allowed" type="email" readonly aria-readonly="true" placeholder="Se completará automáticamente con su código"></div><div class="sm:col-span-2"><label class="field-label" for="cajaNombre">Apellidos y nombres completos *</label><input id="cajaNombre" name="nombreCompleto" class="field uppercase" type="text" required placeholder="APELLIDOS Y NOMBRES" autocomplete="name"><p class="helper select-none">Escriba sus datos en el orden indicado.</p></div><div class="sm:col-span-2"><label class="field-label" for="cajaCarrera">Carrera actual *</label><select id="cajaCarrera" name="carrera" class="field" required>${carreraOptions}</select></div></div></section><div id="camposEspecificosConstanciaAcademica"></div><section class="border-t border-gray-200 pt-6"><h3 class="text-lg font-extrabold text-gray-900 mb-4">DECLARACIONES OBLIGATORIAS</h3><div class="space-y-3"><label class="flex items-start gap-3 rounded-xl border border-gray-200 p-4 cursor-pointer"><input type="checkbox" name="declaracionConsentimiento" class="declaracionCaja mt-1 accent-red-600" required><span class="text-sm leading-relaxed text-gray-700">Declaro que todos los datos expresados en este documento constituyen mi consentimiento libre y voluntario.</span></label><label class="flex items-start gap-3 rounded-xl border border-gray-200 p-4 cursor-pointer"><input type="checkbox" name="declaracionFormulario" class="declaracionCaja mt-1 accent-red-600" required><span class="text-sm leading-relaxed text-gray-700">Declaro haber leído y completado conforme el presente formulario.</span></label></div></section><section class="border-t border-gray-200 pt-6 space-y-4"><button type="submit" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--esan-red)] hover:bg-[var(--esan-red-dark)] px-7 py-3.5 text-white font-bold shadow-lg"><i data-lucide="check-circle" class="w-5 h-5"></i>Solicitar constancias académicas</button><p class="helper">Una vez enviada, recibirás el ticket y las indicaciones para continuar con el trámite en tu correo institucional.</p><div id="estadoCaja" class="hidden rounded-xl border p-4 text-sm" aria-live="polite"></div></section></form></div>`;
+  document.getElementById("viewer").innerHTML=`${header}<form id="formularioCaja" class="glass rounded-2xl p-6 sm:p-8 space-y-6" novalidate onsubmit="event.preventDefault(); validarFormularioCaja('constanciasAcademicas');"><section><label class="field-label" for="tipoConstanciaCaja">SELECCIONE EL TIPO DE CONSTANCIA *</label><select id="tipoConstanciaCaja" name="tipoConstanciaCaja" class="field" required onchange="actualizarCamposConstanciaAcademica()"><option value="">SELECCIONE UNA CONSTANCIA</option><option value="constanciaPromedio">Constancia de Promedio Ponderado Acumulado — S/ 10.00</option><option value="constanciaCreditos">Constancia de Número de Créditos Acumulados — S/ 10.00</option><option value="constanciaRendimientoFacultad">Constancia de Rendimiento Académico por Facultad — S/ 10.00</option><option value="constanciaRendimientoPromedio">Constancia de Rendimiento Académico y Promedio Ponderado — S/ 20.00</option></select></section><section class="border-t border-gray-200 pt-6"><h3 class="text-lg font-extrabold text-gray-900 mb-5">DATOS DEL ESTUDIANTE</h3><div class="grid sm:grid-cols-2 gap-5"><div><label class="field-label" for="cajaCodigo">CÓDIGO DE ESTUDIANTE *</label><input id="cajaCodigo" name="codigo" class="field bg-gray-100 cursor-not-allowed" type="text" inputmode="numeric" maxlength="8" pattern="[0-9]{8}" required value="${atributoCodigoSesion()}" readonly aria-readonly="true"></div><div><label class="field-label" for="cajaCorreoInstitucional">CORREO INSTITUCIONAL</label><input id="cajaCorreoInstitucional" name="correoInstitucional" class="field bg-gray-100 cursor-not-allowed" type="email" readonly aria-readonly="true" placeholder="Se completará automáticamente con su código"></div><div class="sm:col-span-2"><label class="field-label" for="cajaNombre">APELLIDOS Y NOMBRES COMPLETOS *</label><input id="cajaNombre" name="nombreCompleto" class="field uppercase" type="text" required placeholder="APELLIDOS Y NOMBRES" autocomplete="name"></div><div class="sm:col-span-2"><label class="field-label" for="cajaCarrera">CARRERA ACTUAL *</label><select id="cajaCarrera" name="carrera" class="field" required>${carreraOptions}</select></div></div></section><div id="camposEspecificosConstanciaAcademica"></div><section class="border-t border-gray-200 pt-6"><h3 class="text-lg font-extrabold text-gray-900 mb-4">DECLARACIONES OBLIGATORIAS</h3><div class="space-y-3"><label class="flex items-start gap-3 rounded-xl border border-gray-200 p-4 cursor-pointer"><input type="checkbox" name="declaracionConsentimiento" class="declaracionCaja mt-1 accent-red-600" required><span class="text-sm leading-relaxed text-gray-700">Declaro que todos los datos expresados en este documento constituyen mi consentimiento libre y voluntario.</span></label><label class="flex items-start gap-3 rounded-xl border border-gray-200 p-4 cursor-pointer"><input type="checkbox" name="declaracionFormulario" class="declaracionCaja mt-1 accent-red-600" required><span class="text-sm leading-relaxed text-gray-700">Declaro haber leído y completado conforme el presente formulario.</span></label></div></section><section class="border-t border-gray-200 pt-6 space-y-4"><button type="submit" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--esan-red)] hover:bg-[var(--esan-red-dark)] px-7 py-3.5 text-white font-bold shadow-lg"><i data-lucide="check-circle" class="w-5 h-5"></i>Solicitar constancias académicas</button><p class="helper">Una vez enviada, recibirás el ticket y las indicaciones para continuar con el trámite en tu correo institucional.</p><div id="estadoCaja" class="hidden rounded-xl border p-4 text-sm" aria-live="polite"></div></section></form></div>`;
   document.getElementById("topTitle").textContent=tramite.nombre;actualizarMenuActivo(tramite.key);toggleMenu(false);
   const code=document.getElementById("cajaCodigo");if(code){code.value=obtenerCodigoSesion();code.readOnly=true;code.classList.add("bg-gray-100","cursor-not-allowed");}
   const email=document.getElementById("cajaCorreoInstitucional");if(email)email.value=code?.value.trim()?`${code.value.trim()}@ue.edu.pe`:"";
@@ -1752,6 +1758,14 @@ function renderFormularioCaja(tramite){
         <div class="flex flex-wrap items-center justify-between gap-3"><h3 class="text-lg font-extrabold text-gray-900">CURSO(S) Y EVALUACIÓN(ES) A SOLICITAR</h3><button type="button" onclick="agregarBloqueExamenRezagado()" class="rounded-xl border border-[var(--esan-red)] px-4 py-2 text-sm font-bold text-[var(--esan-red)] hover:bg-red-50">+ AGREGAR OTRO EXAMEN DE REZAGADOS</button></div>
         <p class="helper mt-2">COMPLETE UN BLOQUE POR CADA CURSO. DEBE ADJUNTAR UN FORMATO DE SOLICITUD EN PDF POR CADA CURSO. LOS DATOS DEL ESTUDIANTE SE INGRESAN UNA SOLA VEZ.</p>
         <div id="bloquesExamenRezagado" class="space-y-5 mt-4">${crearBloqueExamenRezagado(1)}</div>
+      <!-- El costo se calcula automáticamente: S/ 100 por cada curso seleccionado. -->
+      <div class="mt-5 rounded-xl bg-gray-50 border border-gray-200 p-4 flex items-center justify-between gap-4">
+        <div>
+          <span class="block font-bold text-gray-700">COSTO TOTAL ESTIMADO</span>
+          <span id="detalleCostoExamenRezagado" class="helper">Cada curso cuesta S/ 100.00. Cursos en la solicitud: 1.</span>
+        </div>
+        <strong id="costoTotalExamenRezagado" class="text-xl text-[var(--esan-red)]">S/ 100.00</strong>
+      </div>
       </div>
     </section>`;
     declarations=[
@@ -1801,11 +1815,16 @@ function renderFormularioCaja(tramite){
   const name=document.getElementById("cajaNombre");
   name?.addEventListener("input",()=>{name.value=name.value.toLocaleUpperCase("es-PE");});
   actualizarIconos(); document.getElementById("viewer").scrollTop=0;
+  if(key==="examenRezagados") actualizarCostoExamenRezagado();
   if(key==="emisionSilabos"){ actualizarCamposCursosSilabos(); actualizarCostoSilabos(); }
   if(["constanciaRendimientoFacultad","constanciaRendimientoPromedio"].includes(key)) actualizarCostoRendimiento(key==="constanciaRendimientoFacultad"?10:20);
   inicializarCamposOtro(document.getElementById("formularioCaja"));
   if(key==="constanciaPrimeraMatricula") alternarCarreraOrigenConstancia(document.getElementById("cambioCarreraConstancia"));
 }
+
+// Costo por cada curso de examen de rezagados.
+// Si la tarifa institucional cambia, actualiza este valor.
+const COSTO_EXAMEN_REZAGADO = 100;
 
 const DOCENTES_REZAGADOS = ["AGUILAR LAGOS GARY ANTONIO","AGUILERA SERPA CESAR AUGUSTO","AGUIRRE GAMARRA CARLOS ANTONIO","AHOMED CHAVEZ OMAR","ALDANA RIVERA SUSANA","ALTAMIRANO CRUZ CARLOS MANUEL","ALVA FALCÓN CÉSAR ALFONSO","ALVARADO GRANDE OSWALDO JULIO","ALVARADO PORTALINO ERNESTO","AMÉSQUITA CUBILLAS FIDEL EDGARD","ANDALUZ LY RAFAEL AUGUSTO","ANGULO ESCUDERO JUAN MARTIN","APHANG LAM ROBER LIUWAIFON","ARANA ÑIQUE HERNÁN ALFONSO","ARAUCO LIVIA MAYRA","ARIAS VALVERDE GINA KATHERINE","AVEROS SALINAS GIOVANNA","AVILA HERRERA HENRY JOSE","AYALA . YARID","AZAÑERO SAONA JOSÉ MANUEL","BAETHGE TALLEDO BRITTA SABINE","BALDEÓN MOLLEDA DANTE REYNALDO","BALLON ALVAREZ EBER JOSEPH","BARDALES SIGUAS LUIS RODOLFO","BENITES ARRIETA GABRIEL WILSON","BETALLELUZ MENESES BETFORD ADRIÁN","BORDA HUAMAN HENRY CLAUDIO","BOZA TORREJON PABLO","BRENNER GALARZA GLORIA CECILIA","BRIOSCHI . ARIANNA","BUSTOS ALVAREZ VARINIA","CABALLERO LA ROSA RENATO","CACEDA QUISPE MARISOL","CÁCERES VILCA STHEFANIE","CALDERON CONTRERAS VALENTIN JESUS","CALDERÓN NIQUIN MARKS ARTURO","CALLE GONZÁLEZ KARLO PIERO","CALLE MONTES VICTORIA DORIS","CALVO CÓRDOVA JUAN FERNANDO","CAMACHO ZEGARRA MARÍA AUGUSTA","CAMARGO ROMÁN MARIELA ISABEL","CANALES ARIAS FELIX","CANO MIYAHIRA BRENDA","CARDENAS RIOS MONICA GUISELA","CARRASCO RIVERA CONSUELO ELSA","CARRERO VILELA RICARDO","CARRILLO MEZA LILLIAN LOURDES","CARRION PUELLES NALDI SUSAN","CASAS NAVARRO JUSTO RAYMUNDO","CASTILLA SALAZAR CARLOS AUGUSTO","CASTILLO RODRIGUEZ DIANA","CASTRO GAMARRA GIANNINA MARIA","CCOICCA PACASI YURI JAVIER","CHANG OLIVAS MARITA CECILIA","CHANG URIBE LUIS ALBERTO","CHAVEZ GONZALES ANGEL MARCO","CHAVEZ ROJAS MONICA PATRICIA","CHERO SALAZAR WILLY","CHIH-YUAN . CHOU","CHINCARO DEL CORAL OMAR ANTONIO","CHIRI JAIME ALBERTO SANDRO","CHIRINOS ANTEZANA ARMANDO","CHOY PUN AUGUSTO CARLOS","CIEZA VILLAVICENCIO JONATHAN SCOTT","COLOMA DIEZ CANSECO JOSE LUIS","CORNEJO DÍAZ RENÉ HELBERT","CORNEJO VILLENA HUGO","CORTEZ CUMPA JORGE ALBERTO","CORTEZ TANGHERLINI DANIEL","COSTA GALVEZ JEAN CARLO","CRUZ CANO RONALD","CRUZADO RIBEYRO ANITA JUSTINA","CUBA BALVIN FIDEL","CUERVO GUZMÁN SERGIO MIGUEL","DÁVILA GARCÍA JOSÉ YASSER","DAVILA JARAMILLO GUILLERMO","DE LA TORRE PAREDES CARLOS ANDRÉS","DE TRAMONTANA PINZÁS KIANA","DE URIOSTE SAMANAMUD ROBERTO RICARDO","DEL CARPIO GALLEGOS JAVIER FERNANDO","DEL CASTILLO REYES JORGE ALEJANDRO","DELGADO LUJÁN DE PIAZZON ADRIANA ROSARIO","DIAZ CHAVEZ ELY","DIAZ ESQUIVEL CRISTHIAN MANUEL","DIAZ MONTES EILLEN ELVIRA","DORIN . MICHAEL ANDREW","EGÚSQUIZA GALLO MERY ENNY","ELGUERA QUISPE SAÚL","ELÍAS LICERA LUIS SALVADOR","ELÍAS ROJAS JUAN FERNANDO","ESPINOSA WINDER FRANCISCO","ESPINOZA COLÁN GLORIA ANGÉLICA ELENA","ESQUIVEL ORTIZ JAIRO YAMIL","ESTRADA MENDOZA MIGUEL LUIS","FABIAN ARTEAGA JUNIOR JOHN","FALCON ROQUE JESUS MARINO","FALEN ZEVALLOS LUIS","FERNANDEZ RODRIGUEZ MILAGRITOS NORA","FERNANDEZ VASQUEZ RICHARD FERNANDO","FIGUEROA CORNEJO CLARA GABINA","FLORES BAHAMONDE MIGUEL ALBERTO","FLORES MARIN DARIO ENRIQUE","FLORES SALINAS JOSE ALBERTO","FRANCISKOVIC INGUNZA JUBITZA MARIANA","GABILONDO ALVAREZ SERGIO ALEJANDRO","GABRIEL RIVERA JOSE LUIS","GALLO MEDINA MARIO ALONSO","GALVEZ MONTERO JOSE FRANCISCO","GARCIA COBOS CARLOS","GARCIA WESTPHALEN LUIS ENRIQUE","GARRIDO . ALEXANDER","GEE CABALLERO BILL WILLIAM","GONZALES FERNÁNDEZ GUISSELA","GONZALES LOPEZ ROLANDO ALBERTO","GONZALES ROMERO SERGIO EDILBERTO","GONZALEZ MENDOZA CARLOS ALBERTO","GRANDEZ BARRÓN PERCY VICTOR RAÚL","GUERRERO SALCEDO FIORELLA","GUEVARA BRINGAS RICARDO","GUILLEN UYEN JORGE BRAULIO","GUTIÉRREZ OCHOA OMAR DARÍO","HENRIQUEZ AYÍN FELIPE ALBERTO","HORNA SALDAÑA CÉSAR JHONNATAN PASELI","HUAMAN PEREZ FERNANDO","HUAMANCHAHUA CANCHANYA DEYBY MAYCOL","HUIMAN CRUZ ALBERTO","HURTADO MAGÁN GIOVANA IRIS","ISASI KÁMICHE MARCOS","JAMANCA RIOS GRACE DIANA","JORGE CAMARGO EDGARDO WILMER","KANASHIRO TOME JULIO","KUYENG RUIZ JUAN LUIS","LARA MASCARO JOSE ALBERTO","LEON VASQUEZ LUIS ALBERTO","LINARES TORRES FREDDY","LINDO HUERTAS ELSA MARÍA","LIZARZABURU BOLAÑOS EDMUNDO RAÚL ANTONIO","LIZARZABURU BOLAÑOS JUAN CARLOS ORLANDO","LLONTOP CÉSPEDES DIEGO","LOAYZA CERRÓN JULIO","LÓPEZ PANDURO CHESTER","LÓPEZ SALDAÑA CÉSAR ADOLFO","LU CHANG-SAY ESTUARDO","LUNA FLORES WALTER ISAÍAS","LUNA IZQUIERDO ADOLFO ELISEO","LUNA OLMOS JHULY","LUNGA CALDERON MILAGROS CECILIA","MAC KAY GONZA JULIO CESAR","MAMANÍ TICONA WILFREDO","MANRIQUE ECHEVARRIA VICTOR SANTIAGO","MANTILLA GONZALES DE LA COTERA EDUARDO JAVIER","MARCELO GORRIO LUIS","MARIN LIRA PERCY YGNACIO","MARIN VILLARÁN LUIS ERNESTO","MÁRQUEZ ARNAO DIEGO ARMANDO","MASIAS PERCCA DANIEL FERNANDO","MEDINA CABREJOS EVER","MEJIA ELÍAS CIRO JAVIER","MENDIOLA CABRERA ALFREDO MELCHOR","MENDIOLA CONTRERAS LUIS ENRIQUE","MERINO TABOADA MARÍA ANTONIETA JESÚS","MIKKELSEN GELDRES FÁTIMA PATRICIA","MINAURO LA TORRE TOMÁS ALBERTO","MIRANDA BENAVIDES JORGE DAVID","MONGE VARGAS MARIANA","MONTERROSO MAZZETTI ESPERANZA","MONTES OSORIO YULY","MONTESINOS CORDOVA JORGE LUIS","MONZÓN ZEVALLOS PABLO ENRIQUE","MORALES INGA SERGIO","MORALES VALLE GLADYS ESTHER","MORÁN YAÑEZ LUIS MIGUEL","MORENO HERMOZA EDUARDO JESÚS","NATTERI MIGUEL DE PRIEGO DOMINGO LUIS ALBERTO","NEVARES ROBLES LUIS JUAN","NÚÑEZ PONCE JULIO CESAR","NUÑEZ SULLCA ALBERTH JOHN","ÑAUPARI BELUPÚ CARLOS","OLIVOS ROSSINI LUISA MARIELLA","ONCHI MIURA FELIPE","OPORTO GUTIERREZ NATALY","ORREGO ALCALÁ LUIS MANUEL","ORTEGA PIANA MARCO ANTONIO","OSTOS MARIÑO JHONY LIONEL","OTINIANO ARANDA WALTER ARMANDO","PADILLA SANCHEZ MARIA ISABEL","PAREDES AGUIRRE MILTON","PAREDES CASTILLO JUALFER","PEÑALOZA ROJAS ENRIQUE EDUARDO","PERALTA MURIAS DIEGO","PEREZ-REYES DE LA FLOR JORGE","PINEDO PALACIOS PATRICA DEL PILAR","PIÑEYRO FERNANDEZ ENRIQUE JULIAN","PORTUGAL LARCO VANIA","PUESCAS CAMPOS ZAIDA BEATRIZ","PUNTRIANO ROSAS CESAR ALFREDO","PUT . DARIUSZ","QUEVEDO GARCÍA SUSY MILAGROS","QUINTANILLA CARDENAS HENRY","QUISPE SALGUERO JULIO RAFAEL","RABI HIRATA KARIM YADALLAH MARTIN","RAJAMENT . VINOD","RAMÍREZ RONDÁN NELSON RAFAEL","RÁZURI VALDIVIA PILAR VICTORIA","REES GARETH HUW","REGALADO PEZÚA OTTO","RIOS RIVERO FLOR ELVIRA","RIVERA CHANTA KEVIN SAMUEL","RODRIGUEZ . FRANCISCO","ROJAS ROJAS JORGE LUIS","ROO SUPERLANO ELBA","ROSALES LÓPEZ PEDRO PABLO","RUIZ CADENILLAS HAYDEE BEATRIZ","RUIZ SANTAMARÍA JUAN JAVIER","SAENZ ARTEAGA ARTURO RODOLFO","SALAZAR RAMIREZ DESIREE AVELINA","SAN MARTIN VILLAVERDE DIEGO","SANDOVAL CORNEJO HILDA","SANTILLAN PAREDES JEFFERSON","SERRANO . TERESITA","SIERRA FLORES LUIS MIGUEL","SILBERMAN PACH BEVERLY RACHAEL","SOTA SÁNCHEZ PERCY ANDRE","SOTO TAPIA SARA ARACELLI","SOTO ZUBIETA ELIAS MANUEL","TANG TONG EDUARDO","TAPIA RONDÓN PAMELA","TASSARA ZEVALLOS ORNELLA VANESSA","TENORIO CARRANZA ALESSANDRA ROXANA","TORRES GUEVARA JUAN JESUS","TUESTA SILVA WILDER","URBINA ROMERO LUIS FRANCO","VALDERRAMA JULCA PATRICIA ENIT","VALDEZ SALAS MARIO MARTIN","VALDIVIA GAGO PAUL ALEJANDRO","VALDIVIESO PAYVA GUILLERMO","VALENZUELA GARCES JORGE","VALERA OLIVARES DANIEL FERNANDO","VALERIANO CUBA ENRIQUE","VARGAS BECERRA BRAULIO CESAR","VARGAS HUANCA GEORGETTE DE LAS MERCEDES","VASQUEZ SANABRIA FERNANDO DAVID","VELARDE ALVAREZ RODRIGO","VELEZ GADEA JUAN CARLOS","VENTURA EGOAVIL JOSÉ EPIFANIO","VERGIU CANTO JORGE LUIS","WAKABAYASHI MUROYA JOSE LUIS","WALKER . JAY","YAN LAU MARIO ALBERTO","ZAMORA RAMOS ULISES JOSÉ","ZAVALETA CAVANI STEVE","ZURITA SALDAÑA VICTOR RAÚL"];
 function crearBloqueExamenRezagado(n){
@@ -1814,9 +1833,9 @@ function crearBloqueExamenRezagado(n){
   const opcionesDocentes=DOCENTES_REZAGADOS.map(d=>`<option value="${escaparHTML(d)}">${escaparHTML(d)}</option>`).join("")+`<option value="OTRO">OTRO</option>`;
   const opcionesSecciones=Array.from({length:32},(_,i)=>`<option value="S-${String(i+1).padStart(3,"0")}">S-${String(i+1).padStart(3,"0")}</option>`).join("");
   return `<div class="bloqueExamen rounded-xl border border-gray-200 p-5" data-examen="${n}">
-    <div class="flex items-center justify-between mb-4"><h4 class="font-extrabold text-gray-900">CURSO ${n}</h4>${n>1?`<button type="button" class="text-sm font-bold text-red-600 hover:underline" onclick="this.closest('.bloqueExamen').remove();renumerarBloquesExamen();">ELIMINAR CURSO</button>`:""}</div>
+    <div class="flex items-center justify-between mb-4"><h4 class="font-extrabold text-gray-900">CURSO ${n}</h4>${n>1?`<button type="button" class="text-sm font-bold text-red-600 hover:underline" onclick="this.closest('.bloqueExamen').remove();renumerarBloquesExamen();actualizarCostoExamenRezagado();">ELIMINAR CURSO</button>`:""}</div>
     <div class="grid sm:grid-cols-2 gap-4">
-      <div><label class="field-label" for="examenCurso${n}">CURSO A REZAGAR *</label><select id="examenCurso${n}" name="cursoRezagado_${n}" class="field examenCurso" required><option value="">SELECCIONE EL CURSO</option>${opcionesCursos}</select></div>
+      <div><label class="field-label" for="examenCurso${n}">CURSO A REZAGAR *</label><select id="examenCurso${n}" name="cursoRezagado_${n}" class="field examenCurso" required onchange="actualizarCostoExamenRezagado()"><option value="">SELECCIONE EL CURSO</option>${opcionesCursos}</select></div>
       <div><label class="field-label" for="examenSeccion${n}">SECCIÓN *</label><select id="examenSeccion${n}" name="seccionRezagado_${n}" class="field examenSeccion" required><option value="">SELECCIONE LA SECCIÓN</option>${opcionesSecciones}<option value="OTRO">OTRO</option></select></div>
       <div><label class="field-label" for="examenTipo${n}">TIPO DE EVALUACIÓN *</label><select id="examenTipo${n}" name="tipoEvaluacion_${n}" class="field examenTipo" required><option value="">SELECCIONE EL TIPO DE EVALUACIÓN</option><option value="EXAMEN FINAL">EXAMEN FINAL</option><option value="PC">PC</option><option value="OTRO">OTRO</option></select></div>
       <div><label class="field-label" for="examenDocente${n}">DOCENTE *</label><select id="examenDocente${n}" name="docenteRezagado_${n}" class="field examenDocente" required><option value="">SELECCIONE EL DOCENTE</option>${opcionesDocentes}</select></div>
@@ -1827,6 +1846,18 @@ function crearBloqueExamenRezagado(n){
     </div>
   </div>`;
 }
+/*
+ * Actualiza el costo de Rezagados según la cantidad de bloques de curso.
+ * Cada bloque representa un curso que el estudiante desea solicitar.
+ */
+function actualizarCostoExamenRezagado(){
+  const cantidadCursos = document.querySelectorAll("#bloquesExamenRezagado .bloqueExamen").length;
+  const total = document.getElementById("costoTotalExamenRezagado");
+  const detalle = document.getElementById("detalleCostoExamenRezagado");
+  if(total) total.textContent = `S/ ${(cantidadCursos * COSTO_EXAMEN_REZAGADO).toFixed(2)}`;
+  if(detalle) detalle.textContent = `Cada curso cuesta S/ ${COSTO_EXAMEN_REZAGADO.toFixed(2)}. Cursos en la solicitud: ${cantidadCursos}.`;
+}
+
 function agregarBloqueExamenRezagado(){
   const c=document.getElementById("bloquesExamenRezagado");
   if(!c)return;
@@ -1834,6 +1865,7 @@ function agregarBloqueExamenRezagado(){
   c.insertAdjacentHTML("beforeend",crearBloqueExamenRezagado(n));
   renumerarBloquesExamen();
   inicializarCamposOtro(c);
+  actualizarCostoExamenRezagado();
   actualizarIconos();
 }
 function renumerarBloquesExamen(){
@@ -1959,6 +1991,13 @@ function validarFormularioCaja(key){
   if(key==="constanciaPrimeraMatricula"&&!document.getElementById("cambioCarreraConstancia")?.value)errors.push("Indica si realizaste cambio de carrera.");
   if(errors.length){state.className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900";state.innerHTML=`<strong>No se puede validar todavía:</strong><ul class="list-disc pl-5 mt-2">${[...new Set(errors)].map(e=>`<li>${e}</li>`).join("")}</ul>`;state.classList.remove("hidden");state.scrollIntoView({behavior:"smooth",block:"nearest"});return;}
   const datosCaja = recopilarDatosFormulario(form);
+  // Guardamos también el estimado de Rezagados para que esté disponible al conectar el Excel.
+  if(key === "examenRezagados"){
+    const cantidadCursos = [...form.querySelectorAll(".examenCurso")]
+      .filter(select => String(select.value || "").trim() !== "").length;
+    datosCaja.cantidadCursosRezagados = cantidadCursos;
+    datosCaja.costoEstimado = `S/ ${(cantidadCursos * COSTO_EXAMEN_REZAGADO).toFixed(2)}`;
+  }
   const detallesOtroCaja = {};
   form.querySelectorAll("[data-otro-campo]").forEach(input=>{
     if(String(input.value||"").trim()) detallesOtroCaja[input.name || input.dataset.otroCampo] = String(input.value).trim();
@@ -2181,7 +2220,7 @@ function actualizarOpcionesCiclosReserva(){
 
   if(!ultimo || !retorno || cicloToIndex(retorno) <= cicloToIndex(ultimo)){
     opciones.innerHTML = "";
-    mensaje.textContent = "Primero selecciona tu último ciclo de estudios y el ciclo de retorno para mostrar los ciclos que correspondan.";
+    mensaje.textContent = "Primero selecciona tu último ciclo de estudios para mostrar los ciclos que correspondan.";
     return;
   }
 
@@ -2315,65 +2354,18 @@ function prepararFormularioRetorno(){
   });
 
   // =====================================================
-  // CICLO DE RETORNO
+  // CICLO DE RETORNO FIJO
+  // Se toma de CICLO_RETORNO_INICIAL y no se genera un desplegable.
+  // Para actualizar el periodo en el futuro, cambia esa constante al inicio del archivo.
   // =====================================================
-  function actualizarCiclosRetorno(){
-    const ultimoSeleccionado = ultimo.value;
+  retorno.value = CICLO_RETORNO_INICIAL;
+  retorno.readOnly = true;
+  retorno.setAttribute("aria-readonly", "true");
 
-    retorno.innerHTML =
-      '<option value="">Seleccione un ciclo</option>';
-
-    let indiceInicial =
-      cicloToIndex(CICLO_RETORNO_INICIAL);
-
-    if(ultimoSeleccionado){
-      const siguienteCiclo =
-        cicloToIndex(ultimoSeleccionado) + 1;
-
-      indiceInicial =
-        Math.max(
-          indiceInicial,
-          siguienteCiclo
-        );
-    }
-
-    if(indiceInicial > cicloToIndex(CICLO_FINAL)){
-      return;
-    }
-
-    const cicloDesde =
-      indexToCiclo(indiceInicial);
-
-    const ciclosRetorno =
-      generarCiclos(cicloDesde);
-
-    ciclosRetorno.forEach(ciclo => {
-      const option = document.createElement("option");
-      option.value = ciclo;
-      option.textContent = ciclo;
-      retorno.appendChild(option);
-    });
-
-    // El periodo de retorno aparece inicialmente en 2027-1.
-    // Si el estudiante ya había elegido otro periodo y sigue disponible, se conserva.
-    const retornoAnterior = retorno.dataset.retornoElegido || CICLO_RETORNO_INICIAL;
-    retorno.value = ciclosRetorno.includes(retornoAnterior) ? retornoAnterior : CICLO_RETORNO_INICIAL;
-    if(!retorno.value && ciclosRetorno.length) retorno.value = ciclosRetorno[0];
-    retorno.dataset.retornoElegido = retorno.value;
-  }
-
-  actualizarCiclosRetorno();
   actualizarOpcionesCiclosReserva();
   actualizarVistaPreviaRetorno();
 
   ultimo.addEventListener("change", () => {
-    actualizarCiclosRetorno();
-    actualizarOpcionesCiclosReserva();
-    actualizarVistaPreviaRetorno();
-    ocultarResultadoSiExiste();
-  });
-  retorno.addEventListener("change", () => {
-    retorno.dataset.retornoElegido = retorno.value;
     actualizarOpcionesCiclosReserva();
     actualizarVistaPreviaRetorno();
     ocultarResultadoSiExiste();
@@ -2443,7 +2435,7 @@ function actualizarVistaPreviaRetorno(){
   if(!ultimo || !retorno || cicloToIndex(retorno) <= cicloToIndex(ultimo)){
     ciclosInput.value = "";
     cantidadInput.value = "";
-    descripcion.innerHTML = '<p class="font-bold text-gray-800">SELECCIONE EL ÚLTIMO CICLO Y EL PERIODO DE RETORNO PARA MOSTRAR LA INFORMACIÓN DEL TRÁMITE QUE CORRESPONDE.</p>';
+    descripcion.innerHTML = '<p class="font-bold text-gray-800">SELECCIONE SU ÚLTIMO CICLO DE ESTUDIOS PARA MOSTRAR LA INFORMACIÓN DEL TRÁMITE QUE CORRESPONDE.</p>';
     documentos.innerHTML = '<p class="font-bold text-gray-800">EL FORMATO Y LAS DECLARACIONES SE MOSTRARÁN SEGÚN EL TRÁMITE QUE CORRESPONDA.</p>';
     documentos.dataset.tramiteTipo = "";
     return;
