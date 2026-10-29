@@ -860,11 +860,14 @@ const db = {
         </div>
 
         <div class="mt-5 mb-6 rounded-2xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-950 leading-relaxed">
-          <p class="font-extrabold">ANTES DE CONTINUAR</p>
+          <p class="font-extrabold"><strong>SOLICITUD DE RESERVA DE MATRÍCULA / REINCORPORACIÓN</strong></p>
+            <p class="mt-3">Estimado(a) estudiante:</p>
+            <p class="mt-3 font-bold"><strong>Antes de solicitar la Reserva de Matrícula o Reincorporación:</strong></p>
           <ul class="list-disc pl-5 mt-2 space-y-1">
-            <li>Para la Reserva de Matrícula, debes verificar que no tengas deudas pendientes. Consultas de Finanzas: <a class="font-bold underline" href="mailto:finanzaspregrado@ue.edu.pe">finanzaspregrado@ue.edu.pe</a>.</li>
-            <li>Si eres beneficiario(a) de PRONABEC, coordina tu caso con <a class="font-bold underline" href="mailto:amadariaga@esan.edu.pe">amadariaga@esan.edu.pe</a>.</li>
-            <li>El simulador determina el trámite y calcula el monto orientativo.</li>
+                <li> Verifique que no tenga deudas pendientes con la Universidad. Para consultas sobre su situación financiera, comuníquese con <a class="font-bold underline" href="mailto:finanzaspregrado@ue.edu.pe">finanzaspregrado@ue.edu.pe</a>.</li>
+                <li> Si es beneficiario(a) de PRONABEC y desea solicitar una Reserva de Matrícula, coordine su caso con la coordinadora del Programa a través del correo <a class="font-bold underline" href="mailto:amadariaga@esan.edu.pe">amadariaga@esan.edu.pe</a>.</li>
+                <li> El simulador determinará qué trámite le corresponde y calculará el monto orientativo.</li>
+                <li> A continuación, se le brindará información más detallada sobre los requisitos y las condiciones del trámite que le corresponda.</li>
           </ul>
         </div>
 
@@ -1742,16 +1745,36 @@ function renderFormularioCaja(tramite){
   if(key==="examenRezagados"){
     fixedCost=null;
     introInfo=`<div class="rounded-xl border border-blue-200 bg-blue-50 p-4 sm:p-5 text-sm text-blue-950 mb-6 space-y-3">
-      <p class="font-extrabold text-base">SOLICITUD DE EVALUACIÓN DE REZAGADOS</p>
-      <p>Estimado(a) estudiante:</p>
-      <p>Para solicitar una evaluación de rezagados, complete el presente formulario y adjunte el formato de solicitud correspondiente a cada curso.</p>
-      <p>Puede registrar uno o varios cursos en un solo formulario. Seleccione <strong>AGREGAR OTRO CURSO</strong> para incluir evaluaciones adicionales.</p>
-      <p>Las fechas programadas para rendir las evaluaciones de rezagados son el <strong>7 y 10 de diciembre</strong>, en modalidad presencial, de conformidad con el calendario académico, que podrá consultar ingresando a la <a class="underline font-semibold" target="_blank" rel="noopener" href="https://uevirtual.ue.edu.pe/intranet/index.php/servicios-academicos/informacion-academica/calendario-academico">plataforma virtual</a>.</p>
-      <p>Los alumnos podrán solicitar la recuperación de cualquier evaluación que no hayan rendido, con excepción de la presentación de trabajos u otro tipo de evaluación que no tenga características de examen. Solo se permite recuperar una nota.</p>
-      <p><strong>Artículo 83°:</strong> “Solamente en casos excepcionales, el alumno que no rindió alguna evaluación y que haya justificado debidamente su inasistencia, podrá rendir una evaluación de rezagados para reemplazar la nota faltante. Los alumnos que por razones de excepción debidamente comprobadas sean autorizados a rendir la evaluación de rezagados lo harán en la fecha y realizando el pago correspondiente según las condiciones que se establezcan.”</p>
-      <p>Para realizar el trámite, deberá contar con la documentación sustentatoria que justifique su solicitud. El resultado de la solicitud (procedente o improcedente) y el horario, para los alumnos autorizados, se comunicarán hasta un día antes de la evaluación mediante el correo institucional y se publicarán en UE Virtual.</p>
-      <p>La evaluación de rezagados comprende todo el contenido del curso. No puede sustituir un trabajo de investigación u otra evaluación que no tenga características de examen, ni reemplazar la nota cero (00) obtenida por falta de probidad, de conformidad con el Artículo 84° del Reglamento de Estudios.</p>
-    </div>`;
+      <p class="text-base"><strong>SOLICITUD DE EVALUACIÓN DE REZAGADOS</strong></p>
+       <p>Estimado(a) estudiante:</p>
+
+  <p>Para solicitar una evaluación de rezagados, complete el presente formulario y siga los siguientes pasos:</p>
+
+  <ol class="list-decimal pl-5 space-y-2">
+    <li>Complete los campos solicitados en el presente formulario.</li>
+
+    <li>Seleccione <strong>AGREGAR OTRO EXAMEN DE REZAGADOS</strong> para incluir evaluaciones adicionales. Puede registrar uno o varios cursos en un solo formulario. Recuerde que solo se permite recuperar una nota por curso correspondiente a una evaluación con formato de examen que no haya rendido (<a class="underline" target="_blank" rel="noopener" href="https://transparenciauniversitaria.esan.edu.pe/wp-content/uploads/2025/03/Reglam_Estudios_de_Pregrado_29.01.2025.pdf"><strong>Artículo 83° del Reglamento de Estudios</strong></a>).</li>
+
+    <li>Descargue el formato de solicitud correspondiente a cada curso y adjúntelo al formulario.</li>
+  </ol>
+
+  <p><strong>Antes de enviar su solicitud, deberá tener en cuenta los siguientes puntos:</strong></p>
+
+  <ol style="list-style-type: lower-alpha;" class="pl-5 space-y-2">
+    <li><strong>La evaluación de rezagados comprende todo el contenido del curso.</strong></li>
+
+    <li>Las fechas programadas para rendir las evaluaciones de rezagados son el <strong>7 y 10 de diciembre</strong>, en modalidad presencial.</li>
+
+    <li><strong>No se puede rezagar</strong> la presentación de trabajos, investigaciones u otras evaluaciones que no tengan características de examen, ni reemplazar la nota cero (00) obtenida por falta de probidad (<a class="underline" target="_blank" rel="noopener" href="https://transparenciauniversitaria.esan.edu.pe/wp-content/uploads/2025/03/Reglam_Estudios_de_Pregrado_29.01.2025.pdf"><strong>Artículo 84° del Reglamento de Estudios</strong></a>).</li>
+
+    <li>Para realizar el trámite, deberá adjuntar la documentación sustentatoria que justifique su solicitud.</li>
+
+    <li>El resultado de la solicitud (procedente o improcedente) y el horario de evaluación, para los estudiantes autorizados, se comunicarán mediante el correo institucional hasta un día antes de la evaluación. Asimismo, se publicarán en UE Virtual.</li>
+
+    <li>El costo por cada evaluación de rezagados es de <strong>S/ 100.00</strong>.</li>
+  </ol>
+
+</div>`;
     // ARCHIVO DESCARGABLE QUE DEBE PUBLICARSE JUNTO AL HTML (NO MOSTRAR ESTE NOMBRE EN LA PÁGINA): formato_solicitud_examen_rezagados.pdf.
     fields=`<section class="border-t border-gray-200 pt-6 space-y-6">
       <div>
@@ -1777,7 +1800,27 @@ function renderFormularioCaja(tramite){
   // CAJA — SOLICITUD DE EMISIÓN DE SÍLABOS
   } else if(key==="emisionSilabos"){
     fixedCost=null;
-    introInfo=`<div class="rounded-xl border border-blue-200 bg-blue-50 p-4 sm:p-5 text-sm text-blue-950 mb-6 space-y-3"><p class="font-bold">ANTES DE SOLICITAR LOS SÍLABOS, DEBERÁ TENER EN CUENTA LOS SIGUIENTES PUNTOS:</p><p>Las constancias se emitirán en formato digital. Puede ver el modelo en el siguiente enlace: <a class="underline text-[var(--esan-red)] font-semibold" href="https://drive.google.com/file/d/1hMeVP_5YoQM3kbEW9xLLttJGMe0c2ruH/view?usp=drive_link" target="_blank" rel="noopener">VER MODELO</a>.</p><ol class="list-decimal pl-5 space-y-2"><li>No debe presentar ninguna deuda pendiente con la Universidad. De lo contrario, deberá regularizar su situación financiera con el área de Finanzas a través del correo: <a class="underline font-semibold" href="mailto:finanzaspregrado@ue.edu.pe">finanzaspregrado@ue.edu.pe</a>.</li><li>El costo por cada sílabo es de S/ 10.00 soles.</li><li>Solo puede solicitar sílabos de cursos aprobados (no convalidados ni desaprobados).</li><li>El plazo máximo para la emisión de la constancia es de 7 días hábiles (no sábados, domingos y feriados), contados a partir del día siguiente del envío del comprobante de pago.</li><li>Por medidas de seguridad, la constancia se enviará únicamente al correo institucional y al correo personal registrado en nuestra base de datos. En caso requiera actualizar su correo personal, deberá detallar la nueva dirección de e-mail y enviarnos la foto de su DNI para validar su identidad y proceder con el cambio solicitado.</li></ol></div>`;
+  introInfo=`<div class="rounded-xl border border-blue-200 bg-blue-50 p-4 sm:p-5 text-sm text-blue-950 mb-6 space-y-3">
+<p class="font-bold text-base">SOLICITUD DE EMISIÓN DE SÍLABOS</p>
+
+<p>Estimado(a) estudiante:</p>
+
+<p>Los sílabos se emitirán en formato digital. Puede ver el modelo en el siguiente enlace: <a class="underline text-[var(--esan-red)] font-semibold" href="https://drive.google.com/file/d/1hMeVP_5YoQM3kbEW9xLLttJGMe0c2ruH/view?usp=drive_link" target="_blank" rel="noopener">VER MODELO</a>.</p>
+
+<p class="font-bold">Antes de solicitar los sílabos, deberá tener en cuenta los siguientes puntos:</p>
+
+<ol class="list-decimal pl-5 space-y-2">
+<li>No debe presentar ninguna deuda pendiente con la Universidad. De lo contrario, deberá regularizar su situación financiera con el área de Finanzas a través del correo <a class="underline font-semibold" href="mailto:finanzaspregrado@ue.edu.pe">finanzaspregrado@ue.edu.pe</a>.</li>
+
+<li>El costo por cada sílabo es de <strong>S/ 10.00</strong>.</li>
+
+<li>Solo puede solicitar sílabos de cursos aprobados (no convalidados ni desaprobados). Antes de realizar su solicitud, deberá revisar su <strong>histórico académico</strong> para identificar el curso con el nombre exacto con el que fue registrado. Si el curso no aparece en la lista de opciones, deberá escribir su nombre tal como figura en su histórico académico, seleccionando la alternativa <strong>«OTRO»</strong>.</li>
+
+<li>El plazo máximo para la emisión de los sílabos es de <strong>7 días hábiles</strong> (no incluye sábados, domingos ni feriados), contados a partir del día siguiente del envío del comprobante de pago.</li>
+
+<li>Por medidas de seguridad, los sílabos se enviarán únicamente al correo institucional y al correo personal registrado en nuestra base de datos. Si necesita actualizar su correo personal, deberá indicar la nueva dirección de correo electrónico y enviar una foto de su DNI al área de Servicios Académicos, a través del correo <a class="underline font-semibold" href="mailto:ssacad@ue.edu.pe">ssacad@ue.edu.pe</a>, para validar su identidad y gestionar el cambio solicitado.</li>
+</ol>
+</div>`;
     fields=`<section class="border-t border-gray-200 pt-6 space-y-6"><div><label class="field-label" for="motivoSilabo">MOTIVO DE LA SOLICITUD *</label><select id="motivoSilabo" name="motivoSolicitud" class="field" required><option value="">SELECCIONE UN MOTIVO</option><option value="TRABAJO">TRABAJO</option><option value="ESTUDIOS">ESTUDIOS</option><option value="PERSONALES">PERSONALES</option></select></div><div><label class="field-label" for="cantidadSilabos">CANTIDAD DE SÍLABOS SOLICITADOS *</label><input id="cantidadSilabos" name="cantidadSilabos" class="field" type="number" min="1" max="${CURSOS_SILABOS.length}" step="1" required value="1" oninput="actualizarCamposCursosSilabos();actualizarCostoSilabos()"><p class="helper">EL COSTO ES DE S/ 10.00 POR CADA SÍLABO. SE MOSTRARÁ UN DESPLEGABLE POR CADA SÍLABO SOLICITADO.</p></div><div><h3 class="font-extrabold text-gray-900 mb-3">CURSO(S) SOLICITADO(S) *</h3><div id="nombresSilabos" class="space-y-4"></div></div><div class="rounded-xl bg-gray-50 border border-gray-200 p-4 flex items-center justify-between"><span class="font-bold text-gray-700">COSTO TOTAL ESTIMADO</span><strong id="costoSilabos" class="text-xl text-[var(--esan-red)]">S/ 10.00</strong></div><div class="format-upload-card rounded-xl border border-gray-200 p-4"><p class="font-bold text-gray-900 mb-3">DEBERÁ DESCARGAR Y ADJUNTAR EL SIGUIENTE DOCUMENTO:</p>
     <p class="mb-4">
   <a
@@ -1795,14 +1838,54 @@ function renderFormularioCaja(tramite){
   // CAJA — CONSTANCIA DE CONDUCTA
   } else if(key==="constanciaConducta"){
     fixedCost=30;
-    introInfo=`<div class="rounded-xl border border-blue-200 bg-blue-50 p-4 sm:p-5 text-sm text-blue-950 mb-6 space-y-3"><p class="font-extrabold text-base">SOLICITUD DE CONSTANCIA DE CONDUCTA</p><p>Estimado(a) estudiante:</p><p>Reciba un cordial saludo, la constancia se emitirá en formato digital. Puede ver el modelo en el siguiente enlace: <a class="underline text-[var(--esan-red)] font-semibold" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1QXlc-NM5Eo1OKtyb1KE0gYto1XZwmmPA/view?usp=drive_link">VER MODELO DE CONSTANCIA</a>.</p><p>Antes de solicitar la constancia de conducta, deberá tener en cuenta los siguientes puntos:</p><ol class="list-decimal pl-5 space-y-2"><li>No debe presentar ninguna deuda pendiente con la Universidad. De lo contrario, deberá regularizar su situación financiera a través del correo <a class="underline font-semibold" href="mailto:cobranzaspregrado@ue.edu.pe">cobranzaspregrado@ue.edu.pe</a>, con copia a <a class="underline" href="mailto:finanzaspregrado@ue.edu.pe">finanzaspregrado@ue.edu.pe</a>, <a class="underline" href="mailto:echavez@esan.edu.pe">echavez@esan.edu.pe</a> y <a class="underline" href="mailto:bbarzola@esan.edu.pe">bbarzola@esan.edu.pe</a>.</li><li>El costo de la constancia es de S/ 30.00.</li><li>El plazo máximo para la emisión de la constancia es de 7 días hábiles (no sábados, domingos ni feriados), contados a partir del día siguiente del envío del comprobante de pago.</li><li>Por medidas de seguridad, la constancia se enviará únicamente al correo institucional y al correo personal registrado en nuestra base de datos. En caso requiera actualizar su correo personal, deberá detallar la nueva dirección de e-mail y enviarnos la foto de su DNI para validar su identidad y proceder con el cambio solicitado.</li></ol></div>`;
+    introInfo=`<div class="rounded-xl border border-blue-200 bg-blue-50 p-4 sm:p-5 text-sm text-blue-950 mb-6 space-y-3">
+
+<p class="font-extrabold text-base">SOLICITUD DE CONSTANCIA DE CONDUCTA</p>
+
+<p>Estimado(a) estudiante:</p>
+
+<p>Reciba un cordial saludo. La constancia se emitirá en formato digital. Puede ver el modelo en el siguiente enlace: <a class="underline text-[var(--esan-red)] font-semibold" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1QXlc-NM5Eo1OKtyb1KE0gYto1XZwmmPA/view?usp=drive_link">VER MODELO DE CONSTANCIA</a>.</p>
+
+<p>Antes de solicitar la constancia de conducta, deberá tener en cuenta los siguientes puntos:</p>
+
+<ol class="list-decimal pl-5 space-y-2">
+
+<li>No debe presentar ninguna deuda pendiente con la Universidad. De lo contrario, deberá regularizar su situación financiera a través del correo <a class="underline font-semibold" href="mailto:cobranzaspregrado@ue.edu.pe">cobranzaspregrado@ue.edu.pe</a>, con copia a <a class="underline font-semibold" href="mailto:finanzaspregrado@ue.edu.pe">finanzaspregrado@ue.edu.pe</a>, <a class="underline font-semibold" href="mailto:echavez@esan.edu.pe">echavez@esan.edu.pe</a> y <a class="underline font-semibold" href="mailto:bbarzola@esan.edu.pe">bbarzola@esan.edu.pe</a>.</li>
+
+<li>El costo de la constancia es de <strong>S/ 30.00</strong>.</li>
+
+<li>El plazo máximo para la emisión de la constancia es de <strong>7 días hábiles</strong> (no incluye sábados, domingos ni feriados), contados a partir del día siguiente del envío del comprobante de pago.</li>
+
+<li>Por medidas de seguridad, la constancia se enviará únicamente al correo institucional y al correo personal registrado en nuestra base de datos. Si necesita actualizar su correo personal, deberá indicar la nueva dirección de correo electrónico y enviar una foto de su DNI al área de Servicios Académicos, a través del correo <a class="underline font-semibold" href="mailto:ssacad@ue.edu.pe">ssacad@ue.edu.pe</a>, para validar su identidad y gestionar el cambio solicitado.</li>
+
+</ol>
+</div>`;
     fields=`<section class="border-t border-gray-200 pt-6"><div class="format-upload-card rounded-xl border border-gray-200 p-4"><p class="font-bold text-gray-900 mb-3">DEBERÁ DESCARGAR Y ADJUNTAR EL SIGUIENTE DOCUMENTO:</p><p class="mb-4"><a class="inline-flex items-center gap-2 rounded-xl bg-[var(--esan-red)] hover:bg-[var(--esan-red-dark)] px-4 py-3 text-white font-bold" href="./formato_solicitud_constancia_conducta.pdf" download="formato_solicitud_constancia_conducta.pdf"><i data-lucide="download" class="w-4 h-4"></i>DESCARGAR FORMATO DE SOLICITUD</a></p><label class="field-label" for="formatoConducta">ADJUNTAR SOLICITUD DE CONSTANCIA DE CONDUCTA *</label><input id="formatoConducta" name="formatoConducta" class="field" type="file" accept=".pdf" required><p class="helper mt-2">FORMATO PERMITIDO: PDF.</p></div><div class="mt-5 rounded-xl bg-gray-50 border border-gray-200 p-4 flex items-center justify-between"><span class="font-bold text-gray-700">COSTO DE LA CONSTANCIA</span><strong class="text-xl text-[var(--esan-red)]">S/ 30.00</strong></div></section>`;
     declarations=["Declaro no tener deuda pendiente con la Universidad.","Declaro haber leído y completado conforme la solicitud de constancia de conducta.",declConsentimiento].map(d=>`<label class="flex items-start gap-3 rounded-xl border border-gray-200 p-4 cursor-pointer"><input type="checkbox" class="declaracionCaja mt-1 accent-red-600" required><span class="text-sm text-gray-700">${d}</span></label>`).join("");
     extraInfo=``;
   // CAJA — CONSTANCIA DE PRIMERA MATRÍCULA
   } else if(key==="constanciaPrimeraMatricula"){
     fixedCost=30;
-    introInfo=`<div class="rounded-xl border border-blue-200 bg-blue-50 p-4 sm:p-5 text-sm text-blue-950 mb-6 space-y-3"><p class="font-extrabold text-base">SOLICITUD DE CONSTANCIA DE PRIMERA MATRÍCULA</p><p>Las Constancias se emitirán en formato digital, puede ver el modelo en el siguiente enlace: <a class="underline text-[var(--esan-red)] font-semibold" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1jN3chN7sx5t68NP1U7sUPwZnqtcgfGSL/view?usp=drive_link">VER MODELO DE CONSTANCIA</a>.</p><p>Antes de solicitar la constancia de primera matrícula, deberá tener en cuenta los siguientes puntos:</p><ol class="list-decimal pl-5 space-y-2"><li>El costo de la constancia es de S/30.00 soles.</li><li>El plazo máximo para la emisión de la constancia es de 7 días hábiles (no sábados, domingos y feriados), contados a partir del día siguiente de llenado el formulario.</li><li>Por medidas de seguridad, la constancia se enviará únicamente al correo institucional y al correo personal registrado en nuestra base de datos. En caso requiera actualizar su correo personal, deberá detallar la nueva dirección de e-mail y enviarnos la foto de su DNI para validar su identidad y proceder con el cambio solicitado.</li></ol></div>`;
+    introInfo=`<div class="rounded-xl border border-blue-200 bg-blue-50 p-4 sm:p-5 text-sm text-blue-950 mb-6 space-y-3">
+
+<p class="font-extrabold text-base">SOLICITUD DE CONSTANCIA DE PRIMERA MATRÍCULA</p>
+
+<p>Estimado(a) estudiante:</p>
+
+<p>La constancia se emitirá en formato digital. Puede ver el modelo en el siguiente enlace: <a class="underline text-[var(--esan-red)] font-semibold" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1jN3chN7sx5t68NP1U7sUPwZnqtcgfGSL/view?usp=drive_link">VER MODELO DE CONSTANCIA</a>.</p>
+
+<p>Antes de solicitar la constancia de primera matrícula, deberá tener en cuenta los siguientes puntos:</p>
+
+<ol class="list-decimal pl-5 space-y-2">
+
+<li>El costo de la constancia es de <strong>S/ 30.00</strong>.</li>
+
+<li>El plazo máximo para la emisión de la constancia es de <strong>7 días hábiles</strong> (no incluye sábados, domingos ni feriados), contados a partir del día siguiente del envío del comprobante de pago.</li>
+
+<li>Por medidas de seguridad, la constancia se enviará únicamente al correo institucional y al correo personal registrado en nuestra base de datos. Si necesita actualizar su correo personal, deberá indicar la nueva dirección de correo electrónico y enviar una foto de su DNI al área de Servicios Académicos, a través del correo <a class="underline font-semibold" href="mailto:ssacad@ue.edu.pe">ssacad@ue.edu.pe</a>, para validar su identidad y gestionar el cambio solicitado.</li>
+
+</ol>
+</div>`;
     fields=`<section class="border-t border-gray-200 pt-6"><div class="mb-5"><label class="field-label" for="cambioCarreraConstancia">¿REALIZÓ CAMBIO DE CARRERA? *</label><select id="cambioCarreraConstancia" name="cambioCarreraConstancia" class="field" required onchange="alternarCarreraOrigenConstancia(this)"><option value="">SELECCIONE UNA RESPUESTA</option><option value="SI">SÍ</option><option value="NO">NO</option></select></div><div id="bloqueCarreraOrigenConstancia" class="hidden mb-5"><label class="field-label" for="carreraOrigenConstancia">CARRERA DE ORIGEN *</label><select id="carreraOrigenConstancia" name="carreraOrigenConstancia" class="field"><option value="">SELECCIONE LA CARRERA DE ORIGEN</option>${CARRERAS.map(c=>`<option value="${escaparHTML(c)}">${escaparHTML(c).toLocaleUpperCase("es-PE")}</option>`).join("")}<option value="OTROS">OTROS</option></select></div><div class="mt-5 format-upload-card rounded-xl border border-gray-200 p-4"><p class="font-bold text-gray-900 mb-3">DEBERÁ DESCARGAR Y ADJUNTAR EL SIGUIENTE DOCUMENTO:</p><p class="mb-4"><a class="inline-flex items-center gap-2 rounded-xl bg-[var(--esan-red)] hover:bg-[var(--esan-red-dark)] px-4 py-3 text-white font-bold" href="./formato_solicitud_constancia_primera_matricula.pdf" download="formato_solicitud_constancia_primera_matricula.pdf"><i data-lucide="download" class="w-4 h-4"></i>DESCARGAR FORMATO DE SOLICITUD</a></p><label class="field-label" for="formatoPrimeraMatricula">ADJUNTAR SOLICITUD DE CONSTANCIA DE PRIMERA MATRÍCULA *</label><input id="formatoPrimeraMatricula" name="formatoPrimeraMatricula" class="field" type="file" accept=".pdf" required><p class="helper mt-2">FORMATO PERMITIDO: PDF.</p></div><div class="mt-5 rounded-xl bg-gray-50 border border-gray-200 p-4 flex items-center justify-between"><span class="font-bold text-gray-700">COSTO DE LA CONSTANCIA</span><strong class="text-xl text-[var(--esan-red)]">S/ 30.00</strong></div></section>`;
     declarations=`<label class="flex items-start gap-3 rounded-xl border border-gray-200 p-4 cursor-pointer"><input type="checkbox" name="declaracionPrimeraMatricula" class="declaracionCaja mt-1 accent-red-600" required><span class="text-sm text-gray-700">Declaro haber leído y completado conforme la solicitud de constancia de primera matrícula.</span></label>`;
     extraInfo=``;
